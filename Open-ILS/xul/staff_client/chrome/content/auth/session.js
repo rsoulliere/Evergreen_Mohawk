@@ -1,5 +1,5 @@
 dump('entering auth/session.js\n');
-// vim:sw=4:ts=4:noet:
+// vim:sw=4:ts=4:et:
 
 if (typeof auth == 'undefined') auth = {};
 auth.session = function (view,login_type) {
@@ -18,26 +18,47 @@ auth.session.prototype = {
 
         var obj = this;
 
+        /* This request is done manually in a try block to allow it to fail
+         * silently if auth_proxy is not even running.  TODO: Move this check
+         * to a module which should be always running, perhaps 'auth'.
+         */
+        var auth_proxy_enabled = false;
         try {
-            var init = this.network.request(
-                api.AUTH_INIT.app,
-                api.AUTH_INIT.method,
-                [ this.view.name_prompt.value ]
-            );
+            var request = new RemoteRequest( api.AUTH_PROXY_ENABLED.app, api.AUTH_PROXY_ENABLED.method );
+            request.send(true);
+            request.setSecure(true);
+            if (request.getResultObject() == 1) {
+                auth_proxy_enabled = true;
+            }
+        } catch(E) {
+        }
 
-            if (init) {
-                if (xulG._data) { delete xulG._data; } // quick kludge; we were re-using a poisoned OpenILS.data (from ws_info.xul?) where js2JSON (and maybe other stuff) does not exist
-                JSAN.use('OpenILS.data'); var data = new OpenILS.data(); data.stash_retrieve();
+        try {
+            if (!auth_proxy_enabled) {
+                var init = this.network.request(
+                    api.AUTH_INIT.app,
+                    api.AUTH_INIT.method,
+                    [ this.view.name_prompt.value ]
+                );
+            }
+
+            if (init || auth_proxy_enabled) {
+                if (xulG._data) {
+                    /* quick kludge; we were re-using a poisoned OpenILS.data
+                     * (from ws_info.xul?) where js2JSON (and maybe other
+                     * stuff) does not exist
+                     */
+                    delete xulG._data;
+                }
+
+                JSAN.use('OpenILS.data');
+                var data = new OpenILS.data();
+                data.stash_retrieve();
 
                 var params = { 
                     'username' : this.view.name_prompt.value,
-                    'password' : hex_md5(
-                        init +
-                        hex_md5(
-                            this.view.password_prompt.value
-                        )
-                    ),
                     'type' : 'temp',
+                    'agent' : 'staffclient'
                 };
 
                 if (data.ws_info[ this.view.server_prompt.value ]) {
@@ -46,7 +67,19 @@ auth.session.prototype = {
                     data.ws_name = params.workstation; data.stash('ws_name');
                 }
 
-                var robj = this.network.simple_request( 'AUTH_COMPLETE', [ params ]);
+                var robj;
+                if (init) {
+                    params['password'] = hex_md5(
+                        init +
+                        hex_md5(
+                            this.view.password_prompt.value
+                        )
+                    );
+                    robj = this.network.simple_request( 'AUTH_COMPLETE', [ params ]);
+                } else if (auth_proxy_enabled) { // safety double-check
+                    params['password'] = this.view.password_prompt.value;
+                    robj = this.network.simple_request( 'AUTH_PROXY_LOGIN', [ params ] );
+                }
 
                 switch (Number(robj.ilsevent)) {
                     case 0:

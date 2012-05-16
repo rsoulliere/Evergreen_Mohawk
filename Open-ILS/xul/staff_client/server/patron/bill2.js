@@ -493,7 +493,6 @@ function init_lists() {
                     }
                 ]
             ))),
-        'map_row_to_columns' : patron.util.std_map_row_to_columns(' '),
         'on_select' : function(ev) {
             JSAN.use('util.functional');
             g.bill_list_selection = util.functional.map_list(
@@ -516,7 +515,7 @@ function init_lists() {
             var treeItem = g.bill_list.node.contentView.getItemAtIndex(row.value);
             if (treeItem.nodeName != 'treeitem') return;
             var treeRow = treeItem.firstChild;
-            var treeCell = treeRow.firstChild;
+            var treeCell = treeRow.firstChild.nextSibling;
             if (g.check_map[ treeItem.getAttribute('retrieve_id') ] != (treeCell.getAttribute('value') == 'true')) {
                 g.check_map[ treeItem.getAttribute('retrieve_id') ] = treeCell.getAttribute('value') == 'true';
                 g.row_map[ treeItem.getAttribute('retrieve_id') ].row.my.checked = treeCell.getAttribute('value') == 'true';
@@ -547,13 +546,13 @@ function init_lists() {
                 function handle_props(row) {
                     try {
                         if ( row && row.my && row.my.mbts && Number( row.my.mbts.balance_owed() ) < 0 ) {
-                            util.widgets.addProperty(params.row_node.firstChild,'refundable');
-                            util.widgets.addProperty(params.row_node.firstChild.childNodes[ g.payment_pending_column_idx ],'refundable');
+                            util.widgets.addProperty(params.treeitem_node.firstChild,'refundable');
+                            util.widgets.addProperty(params.treeitem_node.firstChild.childNodes[ g.payment_pending_column_idx ],'refundable');
                         }
                         if ( row && row.my && row.my.circ && ! row.my.circ.checkin_time() ) {
                             $('circulating_hint').hidden = false;
-                            util.widgets.addProperty(params.row_node.firstChild,'circulating');
-                            util.widgets.addProperty(params.row_node.firstChild.childNodes[ g.title_column_idx ],'circulating');
+                            util.widgets.addProperty(params.treeitem_node.firstChild,'circulating');
+                            util.widgets.addProperty(params.treeitem_node.firstChild.childNodes[ g.title_column_idx ],'circulating');
                         }
                     } catch(E) {
                         g.error.sdump('D_WARN','Error setting list properties in bill2.js: ' + E);

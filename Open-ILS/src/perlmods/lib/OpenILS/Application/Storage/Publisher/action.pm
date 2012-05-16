@@ -14,6 +14,9 @@ use DateTime::Format::ISO8601;
 use OpenILS::Utils::Penalty;
 use POSIX qw(ceil);
 use OpenILS::Application::Circ::CircCommon;
+use OpenILS::Application::AppUtils;
+my $U = "OpenILS::Application::AppUtils";
+
 
 sub isTrue {
 	my $v = shift;
@@ -901,6 +904,10 @@ sub generate_fines {
 			my $recurring_fine = int($c->$recurring_fine_method * 100);
 			my $max_fine = int($c->max_fine * 100);
 
+			my $skip_closed_check = $U->ou_ancestor_setting_value(
+				$c->$circ_lib_method->to_fieldmapper->id, 'circ.fines.charge_when_closed');
+			$skip_closed_check = $U->is_true($skip_closed_check);
+
 			my ($latest_billing_ts, $latest_amount) = ('',0);
 			for (my $bill = 1; $bill <= $pending_fine_count; $bill++) {
 	
@@ -921,22 +928,24 @@ sub generate_fines {
 					$current_bill_count--;
 				}
 
-				my $dow = $billing_ts->day_of_week_0();
-				my $dow_open = "dow_${dow}_open";
-				my $dow_close = "dow_${dow}_close";
+				my $timestamptz = $billing_ts->strftime('%FT%T%z');
+				if (!$skip_closed_check) {
+					my $dow = $billing_ts->day_of_week_0();
+					my $dow_open = "dow_${dow}_open";
+					my $dow_close = "dow_${dow}_close";
 
-				if (my $h = $hoo{$c->$circ_lib_method}) {
-					next if ( $h->$dow_open eq '00:00:00' and $h->$dow_close eq '00:00:00');
+					if (my $h = $hoo{$c->$circ_lib_method}) {
+						next if ( $h->$dow_open eq '00:00:00' and $h->$dow_close eq '00:00:00');
+					}
+	
+					my @cl = actor::org_unit::closed_date->search_where(
+							{ close_start	=> { '<=' => $timestamptz },
+							  close_end	=> { '>=' => $timestamptz },
+							  org_unit	=> $c->$circ_lib_method }
+					);
+					next if (@cl);
 				}
 
-				my $timestamptz = $billing_ts->strftime('%FT%T%z');
-				my @cl = actor::org_unit::closed_date->search_where(
-						{ close_start	=> { '<=' => $timestamptz },
-						  close_end	=> { '>=' => $timestamptz },
-						  org_unit	=> $c->$circ_lib_method }
-				);
-				next if (@cl);
-	
 				$current_fine_total += $recurring_fine;
 				$latest_amount += $recurring_fine;
 				$latest_billing_ts = $timestamptz;
@@ -1129,10 +1138,13 @@ sub new_hold_copy_targeter {
 
 					# cancel cause = un-targeted expiration
 					$hold->update( { cancel_time => 'now', cancel_cause => 1 } ); 
+
+					# refresh fields from the DB while still in the xact
+					my $fm_hold = $hold->to_fieldmapper; 
+
 					$self->method_lookup('open-ils.storage.transaction.commit')->run;
 
 					# tell A/T the hold was cancelled
-					my $fm_hold = $hold->to_fieldmapper;
 					my $ses = OpenSRF::AppSession->create('open-ils.trigger');
 					$ses->request('open-ils.trigger.event.autocreate', 
 						'hold_request.cancel.expire_no_target', $fm_hold, $fm_hold->pickup_lib);
@@ -1151,30 +1163,33 @@ sub new_hold_copy_targeter {
 
 			# find all the potential copies
 			if ($hold->hold_type eq 'M') {
-				for my $r ( map
-						{$_->record}
-						metabib::record_descriptor
-							->search(
-								record => [
-									map {
-										isTrue($_->deleted) ?  () : ($_->id)
-									} metabib::metarecord->retrieve($hold->target)->source_records
-								],
-								( $types   ? (item_type => [split '', $types])   : () ),
-								( $formats ? (item_form => [split '', $formats]) : () ),
-								( $lang	   ? (item_lang => $lang)				 : () ),
-							)
-				) {
-					my ($rtree) = $self
-						->method_lookup( 'open-ils.storage.biblio.record_entry.ranged_tree')
-						->run( $r->id, $hold->selection_ou, $hold->selection_depth );
+				my $records = [
+					map {
+						isTrue($_->deleted) ?  () : ($_->id)
+					} metabib::metarecord->retrieve($hold->target)->source_records
+				];
+                if(@$records > 0) {
+					for my $r ( map
+							{$_->record}
+							metabib::record_descriptor
+								->search(
+									record => $records,
+									( $types   ? (item_type => [split '', $types])   : () ),
+									( $formats ? (item_form => [split '', $formats]) : () ),
+									( $lang	   ? (item_lang => $lang)				 : () ),
+								)
+					) {
+						my ($rtree) = $self
+							->method_lookup( 'open-ils.storage.biblio.record_entry.ranged_tree')
+							->run( $r->id, $hold->selection_ou, $hold->selection_depth );
 
-					for my $cn ( @{ $rtree->call_numbers } ) {
-						push @$all_copies,
-							asset::copy->search_where(
-								{ id => [map {$_->id} @{ $cn->copies }],
-								  deleted => 'f' }
-							) if ($cn && @{ $cn->copies });
+						for my $cn ( @{ $rtree->call_numbers } ) {
+							push @$all_copies,
+								asset::copy->search_where(
+									{ id => [map {$_->id} @{ $cn->copies }],
+									  deleted => 'f' }
+								) if ($cn && @{ $cn->copies });
+						}
 					}
 				}
 			} elsif ($hold->hold_type eq 'T') {
@@ -1232,14 +1247,14 @@ sub new_hold_copy_targeter {
 
             # Force and recall holds bypass pretty much everything
             if ($hold->hold_type ne 'R' && $hold->hold_type ne 'F') {
-			# trim unholdables
-			@$all_copies = grep {	isTrue($_->status->holdable) && 
-						isTrue($_->location->holdable) && 
-						isTrue($_->holdable) &&
-						!isTrue($_->deleted) &&
-						(isTrue($hold->mint_condition) ? isTrue($_->mint_condition) : 1) &&
-						($hold->hold_type ne 'P' ? $_->part_maps->count == 0 : 1)
-					} @$all_copies;
+    			# trim unholdables
+	    		@$all_copies = grep {	isTrue($_->status->holdable) && 
+		    				isTrue($_->location->holdable) && 
+			    			isTrue($_->holdable) &&
+				    		!isTrue($_->deleted) &&
+					    	(isTrue($hold->mint_condition) ? isTrue($_->mint_condition) : 1) &&
+						    ($hold->hold_type ne 'P' ? $_->part_maps->count == 0 : 1)
+    					} @$all_copies;
             }
 
 			# let 'em know we're still working
@@ -1323,11 +1338,13 @@ sub new_hold_copy_targeter {
 			$log->debug("\t".scalar(@good_copies)." (non-current) copies available for targeting...");
 
 			my $old_best = $hold->current_copy;
+			my $old_best_still_valid = 0; # Assume no, but the next line says yes if it is still a potential.
+			$old_best_still_valid = 1 if ( $old_best && grep { ''.$old_best->id eq ''.$_->id } @$all_copies );
 			$hold->update({ current_copy => undef }) if ($old_best);
 	
 			if (!scalar(@good_copies)) {
 				$log->info("\tNo (non-current) copies eligible to fill the hold.");
-				if ( $old_best && grep { ''.$old_best->id eq ''.$_->id } @$all_copies ) {
+				if ( $old_best_still_valid ) {
 					# the old copy is still available
 					$log->debug("\tPushing current_copy back onto the targeting list");
 					push @good_copies, $old_best;
@@ -1354,7 +1371,7 @@ sub new_hold_copy_targeter {
 
 			$all_copies = [grep { $_->status == 0 || $_->status == 7 } grep {''.$_->circ_lib ne $pu_lib } @good_copies];
 			# $all_copies is now a list of copies not at the pickup library
-
+			
             my $best;
             if  ($hold->hold_type eq 'R' || $hold->hold_type eq 'F') { # Recall/Force holds bypass hold rules.
                 $best = $good_copies[0] if(scalar @good_copies);
@@ -1435,10 +1452,13 @@ sub new_hold_copy_targeter {
 
 						# cancel cause = un-targeted expiration
 						$hold->update( { cancel_time => 'now', cancel_cause => 1 } ); 
+
+						# refresh fields from the DB while still in the xact
+						my $fm_hold = $hold->to_fieldmapper; 
+
 						$self->method_lookup('open-ils.storage.transaction.commit')->run;
 
 						# tell A/T the hold was cancelled
-						my $fm_hold = $hold->to_fieldmapper;
 						my $ses = OpenSRF::AppSession->create('open-ils.trigger');
 						$ses->request('open-ils.trigger.event.autocreate', 
 							'hold_request.cancel.expire_no_target', $fm_hold, $fm_hold->pickup_lib);
@@ -1470,14 +1490,25 @@ sub new_hold_copy_targeter {
 				$hold->update( { current_copy => ''.$best->id, prev_check_time => 'now' } );
 				$log->debug("\tUpdating hold [".$hold->id."] with new 'current_copy' [".$best->id."] for hold fulfillment.");
 			} elsif (
-				$old_best &&
+				$old_best_still_valid &&
 				!action::hold_request
 					->search_where(
 						{ current_copy => $old_best->id,
 						  fulfillment_time => undef,
 						  cancel_time => undef,
 						}       
-					)
+					) &&
+				( OpenILS::Utils::PermitHold::permit_copy_hold(
+					{ title => $old_best->call_number->record->to_fieldmapper,
+					  title_descriptor => $old_best->call_number->record->record_descriptor->next->to_fieldmapper,
+					  patron => $hold->usr->to_fieldmapper,
+					  copy => $old_best->to_fieldmapper,
+					  requestor => $hold->requestor->to_fieldmapper,
+					  request_lib => $hold->request_lib->to_fieldmapper,
+					  pickup_lib => $hold->pickup_lib->id,
+					  retarget => 1
+					}
+				))
 			) {     
 				$hold->update( { prev_check_time => 'now', current_copy => ''.$old_best->id } );
 				$log->debug( "\tRetargeting the previously targeted copy [".$old_best->id."]" );
@@ -1658,10 +1689,13 @@ sub reservation_targeter {
 
 				# cancel cause = un-targeted expiration
 				$bresv->update( { cancel_time => 'now' } ); 
+
+				# refresh fields from the DB while still in the xact
+				my $fm_bresv = $bresv->to_fieldmapper;
+
 				$self->method_lookup('open-ils.storage.transaction.commit')->run;
 
 				# tell A/T the reservation was cancelled
-				my $fm_bresv = $bresv->to_fieldmapper;
 				my $ses = OpenSRF::AppSession->create('open-ils.trigger');
 				$ses->request('open-ils.trigger.event.autocreate', 
 					'booking.reservation.cancel.expire_no_target', $fm_bresv, $fm_bresv->pickup_lib);

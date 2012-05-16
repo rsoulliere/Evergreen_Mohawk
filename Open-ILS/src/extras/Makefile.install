@@ -4,8 +4,7 @@
 #
 # Makefile to install prerequisites for OpenSRF and Evergreen
 #
-# Currently supports Debian (squeeze), Ubuntu (lucid), and Fedora (16).
-# Working towards support of CentOS 5 / RHEL 5.
+# Currently supports Debian (squeeze), Ubuntu (10.04), Ubuntu (12.04) and Fedora (16).
 # Installs Perl prereqs, libjs with Perl wrapper, libdbi, libdbi-drivers, and libyaz
 #
 # usage:
@@ -13,16 +12,9 @@
 # 	- or -
 # 	make -f Makefile.install ubuntu-lucid
 # 	- or -
+# 	make -f Makefile.install ubuntu-precise
+# 	- or -
 # 	make -f Makefile.install fedora16
-# 	- or -
-# 	make -f Makefile.install centos
-# 	- or -
-# 	make -f Makefile.install rhel
-#
-# Notes:
-#
-# 	This makefile has been tested much more with Debian, Ubuntu, and
-# 	Fedora than CentOS, or RHEL.
 #
 # ---------------------------------------------------------------------
  
@@ -30,7 +22,7 @@
 SHELL=/bin/bash 
 
 LIBJS=js-1.7.0
-LIBJS_PERL=JavaScript-SpiderMonkey-0.20
+LIBJS_PERL=JavaScript-SpiderMonkey-0.21
 LIBJS_URL=http://ftp.mozilla.org/pub/mozilla.org/js/$(LIBJS).tar.gz
 LIBJS_PERL_URL=http://mirror.datapipe.net/pub/CPAN/authors/id/T/TB/TBUSCH/$(LIBJS_PERL).tar.gz
 # used for installing libjs lib and header files
@@ -47,30 +39,18 @@ LIBDBI_HOST=http://open-ils.org/~denials/evergreen
 
 # We need a recent version of Yaz
 # Debian Lenny and Ubuntu 8.10 come with 3.0.34
-YAZ=yaz-4.2.17
+YAZ=yaz-4.2.32
 YAZ_HOST=http://ftp.indexdata.dk/pub/yaz
-
-# Business::OnlinePayment is not packaged on CentOS/RHEL
-PAY_ONLINE=Business-OnlinePayment-3.00_08.tar.gz
-PAY_ONLINE_HOST=http://ftp.perl.org/pub/CPAN/authors/id/I/IV/IVAN/
 
 APT_TOOL=aptitude -yq
 APT_SAFE_TOOL=aptitude -P
 APT_BACKPORT_TOOL=aptitude -t squeeze-backports -yq
-
-# 64 or 32 bit os?
-LBITS=$(shell getconf LONG_BIT)
 
 # Fedora?
 FEDORA=$(shell uname -r | grep "\.fc[0-9][0-9]\.")
 
 # Fedora 64-bit?
 FEDORA_64=$(shell uname -r | grep "\.fc[0-9][0-9]\.x86_64")
-
-#RHEL/Centos PGSQL 
-PGSQL_HOST=http://yum.pgsqlrpms.org/reporpms/9.0
-PGSQL_CENTOS=pgdg-centos-9.0-2.noarch.rpm
-PGSQL_REDHAT=pgdg-redhat-9.0-2.noarch.rpm	
 
 # Debian dependencies
 DEBS =  \
@@ -93,12 +73,12 @@ DEBS =  \
 	liblog-log4perl-perl\
 	libmarc-record-perl\
 	libncurses5-dev\
+	libnet-ldap-perl \
 	libnet-server-perl\
 	libnet-ssh2-perl\
 	libnspr4-dev\
 	libole-storage-lite-perl\
 	libparent-perl \
-	libpq-dev\
 	libreadline5-dev\
 	libspreadsheet-writeexcel-perl\
 	libssh2-1-dev\
@@ -132,42 +112,6 @@ EXTRA_DEBS_PRECISE = \
     libnet-z3950-simple2zoom-perl \
     libuuid-tiny-perl
 
-# Ubuntu Hardy requires libencode-perl # to get a version of Encode
-# > 2.12 - see bug 525069.
-EXTRA_ENCODE = \
-	libencode-perl
-
-CENTOS = \
-	aspell \
-	aspell-devel \
-	aspell-en \
-	gd-devel \
-	libssh2-devel \
-	openssl-devel \
-	perl-parent \
-	perl-Business-CreditCard \
-	perl-Business-ISBN \
-	perl-Business-ISBN-Data \
-	perl-Business-OnlinePayment \
-	perl-Class-Data-Inheritable \
-	perl-DateTime-Format-Builder \
-	perl-DateTime-Format-Strptime \
-	perl-Ima-DBI \
-	perl-DBD-Pg \
-	perl-GD-Graph3d \
-	perl-IO-stringy \
-	perl-Spreadsheet-WriteExcel \
-	perl-Text-Aspell \
-	perl-Text-CSV
-
-CENTOS_PERL = \
-	Encode \
-	DBIx::ContextualFetch \
-	Getopt::Long \
-	Net::SSH2 \
-	Net::XMPP \
-	Net::Z3950::ZOOM
-
 FEDORA_RPMS = \
 	aspell \
 	aspell-en \
@@ -189,6 +133,8 @@ FEDORA_RPMS = \
 	perl-Email-Simple \
 	perl-GDGraph3d \
 	perl-JSON-XS \
+	perl-LDAP \
+	perl-Locale-Codes \
 	perl-Net-IP \
 	perl-Net-SSH2 \
 	perl-OLE-Storage_Lite \
@@ -209,6 +155,7 @@ FEDORA_RPMS = \
 FEDORA_CPAN = \
 	Business::OnlinePayment \
 	Business::OnlinePayment::AuthorizeNet \
+	Business::OnlinePayment::PayPal \
 	MARC::Record \
 	UUID::Tiny
 
@@ -262,6 +209,7 @@ DEB_APACHE_DISMODS = \
 # Chronically unpackaged CPAN modules
 CPAN_MODULES = \
 	Business::EDI \
+	Business::OnlinePayment::PayPal \
 	Library::CallNumber::LC \
 	Net::Z3950::Simple2ZOOM \
 	Template::Plugin::POSIX \
@@ -300,6 +248,7 @@ CPAN_MODULES_LUCID = \
 # avaialalbe as debs.
 CPAN_MODULES_PRECISE = \
     Business::CreditCard::Object \
+    Business::OnlinePayment::PayPal \
     Template::Plugin::POSIX \
     RPC::XML::Function
 
@@ -311,14 +260,10 @@ all:
 # these should be the same for any distro
 install: install_cpan install_js_sm install_cpan_force
 
-centos: install_centos_pgsql centos_like
-rhel: install_redhat_pgsql centos_like
-centos_like: install_centos_rpms install_yaz install_cpan_marc install install_centos_perl create_ld_local install_cpan_safe install_libdbi
-
 fedora16: install_fedora_rpms install_cpan_fedora install_cpan_marc install
 
 debian-squeeze: squeeze generic_debian
-squeeze: install_pgsql_client_debs_90  install_extra_debs_squeeze
+squeeze: install_pgsql_client_backport_debs_91  install_extra_debs_squeeze
 generic_debian: install_debs install_yaz test_for_libdbi_pkg install debian_sys_config install_libdbi
 
 # Needs for Ubuntu Lucid Lynx (10.04 LTS):
@@ -467,7 +412,7 @@ install_debs:
 	$(APT_TOOL) install $(DEBS)
 
 install_pgsql_client_debs_90:
-	@if [ `$(APT_TOOL) versions libpq-dev | grep ^i|sed 's/^i[ \t]*//'|cut -d. -f1` -eq 8 ]; \
+	@if [ `$(APT_TOOL) versions libpq5 | grep ^i|sed 's/^i[ \t]*//'|cut -d. -f1` -eq 8 ]; \
 		then \
 		echo -e "libpq5 / libpq-dev are installed as part of OpenSRF (a dependency" \
 		"of apache2-prefork-dev), but these are the 8.4 versions and they" \
@@ -483,10 +428,27 @@ install_pgsql_client_debs_90:
 install_pgsql_server_debs_90:
 	$(APT_BACKPORT_TOOL) install $(PGSQL_SERVER_DEBS_90)
 
+install_pgsql_client_backport_debs_91:
+	@if [ `$(APT_TOOL) versions libpq5 | grep ^i|sed 's/^i[ \t]*//'|cut -d. -f1` -eq 8 ]; \
+		then \
+		echo -e "libpq5 / libpq-dev are installed as part of OpenSRF (a dependency" \
+		"of apache2-prefork-dev), but these are the 8.4 versions and they" \
+		"conflict with the 9.0 versions - so remove them, install the pinned" \
+		"backports of 9.0, then reinstall the apache2-prefork-dev package.\n\n" \
+		"**WARNING**: Saying 'Yes' to this step will _remove_ any PostgreSQL" \
+		"databases that might currently exist on this machine." && \
+		$(APT_SAFE_TOOL) remove libpq5 libpq-dev ; \
+	fi
+	$(APT_BACKPORT_TOOL) install $(PGSQL_CLIENT_DEBS_91)
+	$(APT_TOOL) install apache2-prefork-dev
+
 install_pgsql_client_debs_91:
 	$(APT_TOOL) install $(PGSQL_CLIENT_DEBS_91)
 
 install_pgsql_server_debs_91:
+	$(APT_TOOL) install $(PGSQL_SERVER_DEBS_91)
+
+install_pgsql_server_backport_debs_91:
 	$(APT_BACKPORT_TOOL) install $(PGSQL_SERVER_DEBS_91)
 
 # Install the debian-specific dependencies for more modern distros
@@ -500,10 +462,6 @@ install_extra_debs_precise: install_extra_debs
 install_extra_debs:
 	$(APT_TOOL) install $(EXTRA_DEBS)
 
-# Install specific modules required by Ubuntu Hardy - see bug 525069
-install_extra_encode:
-	$(APT_TOOL) install $(EXTRA_ENCODE)
-
 # ------------------------------------------------------------------
 
 # FEDORA
@@ -513,39 +471,6 @@ install_fedora_rpms:
 
 install_fedora_pgsql_server:
 	yum -y install $(PGSQL_FEDORA_RPMS)
-
-# CENTOS
-install_centos_rpms:
-	yum -y install $(CENTOS)
-	yum -y update
-	if [ $(LBITS) -eq 64 ]; then \
-		ln -sf /usr/lib64/libpq.* /usr/lib/ && \
-		ln -sf /usr/lib64/perl5/5.8.8/x86_64-linux-thread-multi/CORE/libperl.so /usr/lib/ && \
-		ldconfig ; \
-	fi;
-	if [ $(LBITS) -eq 32 ]; then \
-		ln -sf /usr/lib/perl5/5.8.8/i386-linux-thread-multi/CORE/libperl.so /usr/lib && \
-		ldconfig ; \
-	fi;
-
-install_centos_pgsql:
-	if [ $(LBITS) -eq 64 ]; then yum remove -y postgresql-libs-8.1*i386 apr-util-devel-*i386 ; fi;
-	wget $(PGSQL_HOST)/$(PGSQL_CENTOS)
-	rpm -Uvh --force ./$(PGSQL_CENTOS)
-	yum update -y
-	yum -y install $(PGSQL_90_RPMS)
-
-install_redhat_pgsql:
-	if [ $(LBITS) -eq 64 ]; then yum remove -y postgresql-libs-8.1*i386 apr-util-devel-*i386 ; fi;
-	wget $(PGSQL_HOST)/$(PGSQL_REDHAT)
-	rpm -Uvh --force ./$(PGSQL_REDHAT)
-	yum update -y
-	yum -y install $(PGSQL_90_RPMS)
-
-install_centos_perl:
-	for m in $(CENTOS_PERL); do perl -MCPAN -e "install \"$$m\";"; done
-	echo "force install Business::OnlinePayment::AuthorizeNet" | perl -MCPAN -e shell
-	echo "force install Scalar::Util" | perl -MCPAN -e shell	
 
 # We need to add /usr/local/lib to the ldconfig list of directories on CentOS,
 # if it is not already there

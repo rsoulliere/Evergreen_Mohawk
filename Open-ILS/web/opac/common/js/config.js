@@ -165,6 +165,8 @@ var PREF_DEF_FONT		= 'opac.default_font';
 var PREF_HOLD_NOTIFY = 'opac.hold_notify';
 var PREF_DEF_LOCATION = 'opac.default_search_location';
 var PREF_DEF_DEPTH	= 'opac.default_search_depth';
+var PREF_DEF_PICKUP = 'opac.default_pickup_location';
+var PREF_DEF_PHONE = 'opac.default_phone'; 
 
 
 /** If enabled, added content attribution links will be 
@@ -391,6 +393,8 @@ var FETCH_BIB_IDS_BY_BARCODE = 'open-ils.search:open-ils.search.multi_home.bib_i
 var FETCH_ORG_SETTING = 'open-ils.actor:open-ils.actor.ou_setting.ancestor_default';
 var TEST_PEER_BIBS				= 'open-ils.search:open-ils.search.peer_bibs.test';
 var FETCH_PEER_BIBS				= 'open-ils.search:open-ils.search.peer_bibs';
+var AUTH_PROXY_ENABLED			= 'open-ils.auth_proxy:open-ils.auth_proxy.enabled';
+var AUTH_PROXY_LOGIN			= 'open-ils.auth_proxy:open-ils.auth_proxy.login';
 
 /* ---------------------------------------------------------------------------- */
 

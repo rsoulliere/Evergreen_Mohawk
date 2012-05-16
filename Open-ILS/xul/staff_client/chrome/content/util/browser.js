@@ -132,17 +132,7 @@ util.browser.prototype = {
                             ['command'],
                             function() {
                                 try {
-                                    if (obj.lock_reload) {
-                                        if (window.confirm( $('offlineStrings').getString('browser.reload.unsaved_data_warning') )) {
-                                            obj.lock_reload = false;
-                                            window.xulG.unlock_tab();
-                                        } else {
-                                            return;
-                                        }
-                                    }
-                                    netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-                                    var n = obj.getWebNavigation();
-                                    n.reload( Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE );
+                                    obj.reload();
                                 } catch(E) {
                                     var err = 'cmd_reload: ' + E;
                                     obj.error.sdump('D_ERROR',err);
@@ -180,6 +170,21 @@ util.browser.prototype = {
         } catch(E) {
             this.error.sdump('D_ERROR','util.browser.init: ' + E + '\n');
         }
+    },
+
+    'reload' : function() {
+        var obj = this;
+        if (obj.lock_reload) {
+            if (window.confirm( $('offlineStrings').getString('browser.reload.unsaved_data_warning') )) {
+                obj.lock_reload = false;
+                window.xulG.unlock_tab();
+            } else {
+                return;
+            }
+        }
+        netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
+        var n = obj.getWebNavigation();
+        n.reload( Components.interfaces.nsIWebNavigation.LOAD_FLAGS_NONE );
     },
 
     'find' : function(text) {
@@ -288,6 +293,7 @@ util.browser.prototype = {
                 };
             }
             if (!cw.xulG.inspect_tab) { cw.xulG.inspect_tab = function() { return window.xulG.inspect_tab(); }; }
+            if (!cw.xulG.is_tab_locked) { cw.xulG.is_tab_locked = function() { return window.xulG.is_tab_locked(); }; }
             if (!cw.xulG.new_patron_tab) { cw.xulG.new_patron_tab = function(a,b) { return window.xulG.new_patron_tab(a,b); }; }
             if (!cw.xulG.set_patron_tab) { cw.xulG.set_patron_tab = function(a,b) { return window.xulG.set_patron_tab(a,b); }; }
             if (!cw.xulG.volume_item_creator) { cw.xulG.volume_item_creator = function(a) { return window.xulG.volume_item_creator(a); }; }

@@ -2846,8 +2846,11 @@ sub query_parser_fts {
     my $default_CD_modifiers = OpenSRF::Utils::SettingsClient->new->config_value(
         apps => 'open-ils.search' => app_settings => 'default_CD_modifiers'
     );
-    $args{query} = "$default_CD_modifiers $args{query}" if ($default_CD_modifiers);
 
+    # Protect against empty / missing default_CD_modifiers setting
+    if ($default_CD_modifiers and !ref($default_CD_modifiers)) {
+        $args{query} = "$default_CD_modifiers $args{query}";
+    }
 
     my $simple_plan = $args{_simple_plan};
     # remove bad chunks of the %args hash
@@ -2908,7 +2911,6 @@ sub query_parser_fts {
     }
     $ou = actor::org_unit->search( { shortname => $ou } )->next->id if ($ou and $ou !~ /^(-)?\d+$/);
 
-
     # gather lasso, as with $ou
 	my $lasso = $args{lasso};
 	if (my ($filter) = $query->parse_tree->find_filter('lasso')) {
@@ -2930,6 +2932,13 @@ sub query_parser_fts {
     # if we have a lasso, go with that, otherwise ... ou
     $ou = $lasso if ($lasso);
 
+    # gather the preferred OU, if one is specified, as with $ou
+    my $pref_ou = $args{pref_ou};
+	$log->info("pref_ou = $pref_ou");
+	if (my ($filter) = $query->parse_tree->find_filter('pref_ou')) {
+            $pref_ou = $filter->args->[0] if (@{$filter->args});
+    }
+    $pref_ou = actor::org_unit->search( { shortname => $pref_ou } )->next->id if ($pref_ou and $pref_ou !~ /^(-)?\d+$/);
 
     # get the default $ou if we have nothing
 	$ou = actor::org_unit->search( { parent_ou => undef } )->next->id if (!$ou and !$lasso and !$mylasso);
@@ -2992,6 +3001,22 @@ sub query_parser_fts {
         @location = @{$filter->args} if (@{$filter->args});
     }
 
+    # gather location_groups
+    if (my ($filter) = $query->parse_tree->find_filter('location_groups')) {
+        my @loc_groups = @{$filter->args} if (@{$filter->args});
+        
+        # collect the mapped locations and add them to the locations() filter
+        if (@loc_groups) {
+
+            my $cstore = OpenSRF::AppSession->create( 'open-ils.cstore' );
+            my $maps = $cstore->request(
+                'open-ils.cstore.direct.asset.copy_location_group_map.search.atomic',
+                {lgroup => \@loc_groups})->gather(1);
+
+            push(@location, $_->location) for @$maps;
+        }
+    }
+
 
     my $param_check = $limit || $query->superpage_size || 'NULL';
     my $param_offset = $offset || 'NULL';
@@ -3009,6 +3034,7 @@ sub query_parser_fts {
 	my $param_locations = '$${' . join(',', map { s/\$//go; "\"$_\""} @location) . '}$$';
 	my $staff = ($self->api_name =~ /staff/ or $query->parse_tree->find_modifier('staff')) ? "'t'" : "'f'";
 	my $metarecord = ($self->api_name =~ /metabib/ or $query->parse_tree->find_modifier('metabib') or $query->parse_tree->find_modifier('metarecord')) ? "'t'" : "'f'";
+	my $param_pref_ou = $pref_ou || 'NULL';
 
 	my $sth = metabib::metarecord_source_map->db_Main->prepare(<<"    SQL");
         SELECT  * -- bib search: $args{query}
@@ -3022,7 +3048,8 @@ sub query_parser_fts {
                     $param_check\:\:INT,
                     $param_limit\:\:INT,
                     $metarecord\:\:BOOL,
-                    $staff\:\:BOOL
+                    $staff\:\:BOOL,
+                    $param_pref_ou\:\:INT
                 );
     SQL
 
@@ -3165,6 +3192,7 @@ sub query_parser_fts_wrapper {
 
     $query = "estimation_strategy($args{estimation_strategy}) $query" if ($args{estimation_strategy});
     $query = "site($args{org_unit}) $query" if ($args{org_unit});
+    $query = "pref_ou($args{pref_ou}) $query" if ($args{pref_ou});
     $query = "depth($args{depth}) $query" if (defined($args{depth}));
     $query = "sort($args{sort}) $query" if ($args{sort});
     $query = "limit($args{limit}) $query" if ($args{limit});
@@ -3183,7 +3211,7 @@ sub query_parser_fts_wrapper {
         if ( ref($args{between}) and @{$args{between}} == 2 and $args{between}[0] =~ /^\d+$/ and $args{between}[1] =~ /^\d+$/ );
 
 
-	my (@between,@statuses,@locations,@types,@forms,@lang,@aud,@lit_form,@vformats,@bib_level);
+	my (@between,@statuses,@locations,@location_groups,@types,@forms,@lang,@aud,@lit_form,@vformats,@bib_level);
 
 	# XXX legacy format and item type support
 	if ($args{format}) {
@@ -3192,7 +3220,7 @@ sub query_parser_fts_wrapper {
 		$args{item_form} = [ split '', $f ];
 	}
 
-    for my $filter ( qw/locations statuses between audience language lit_form item_form item_type bib_level vr_format/ ) {
+    for my $filter ( qw/locations location_groups statuses between audience language lit_form item_form item_type bib_level vr_format/ ) {
     	if (my $s = $args{$filter}) {
     		$s = [$s] if (!ref($s));
 

@@ -45,6 +45,18 @@ sub start_db_session {
 	return $session;
 }
 
+sub set_audit_info {
+	my $self = shift;
+	my $session = shift;
+	my $authtoken = shift;
+	my $user_id = shift;
+	my $ws_id = shift;
+	
+	my $audit_req = $session->request( "open-ils.storage.set_audit_info", $authtoken, $user_id, $ws_id );
+	my $audit_resp = $audit_req->recv();
+	$audit_req->finish();
+}
+
 my $PERM_QUERY = {
     select => {
         au => [ {
@@ -778,6 +790,37 @@ sub fetch_stat_cat_entry {
 	return ( $entry, $evt );
 }
 
+sub fetch_stat_cat_entry_default {
+    my( $self, $type, $id ) = @_;
+    my( $entry_default, $evt );
+    $logger->debug("Fetching $type stat cat entry default: $id");
+    $entry_default = $self->simplereq(
+        'open-ils.cstore', 
+        "open-ils.cstore.direct.$type.stat_cat_entry_default.retrieve", $id );
+
+    my $e = 'ASSET_STAT_CAT_ENTRY_DEFAULT_NOT_FOUND';
+    $e = 'ACTOR_STAT_CAT_ENTRY_DEFAULT_NOT_FOUND' if $type eq 'actor';
+
+    $evt = OpenILS::Event->new( $e, id => $id ) unless $entry_default;
+    return ( $entry_default, $evt );
+}
+
+sub fetch_stat_cat_entry_default_by_stat_cat_and_org {
+    my( $self, $type, $stat_cat, $orgId ) = @_;
+    my $entry_default;
+    $logger->info("### Fetching $type stat cat entry default with stat_cat $stat_cat owned by org_unit $orgId");
+    $entry_default = $self->simplereq(
+        'open-ils.cstore', 
+        "open-ils.cstore.direct.$type.stat_cat_entry_default.search.atomic", 
+        { stat_cat => $stat_cat, owner => $orgId } );
+
+    $entry_default = $entry_default->[0];
+    return ($entry_default, undef) if $entry_default;
+
+    my $e = 'ASSET_STAT_CAT_ENTRY_DEFAULT_NOT_FOUND';
+    $e = 'ACTOR_STAT_CAT_ENTRY_DEFAULT_NOT_FOUND' if $type eq 'actor';
+    return (undef, OpenILS::Event->new($e) );
+}
 
 sub find_org {
 	my( $self, $org_tree, $orgid )  = @_;
@@ -1458,7 +1501,15 @@ sub get_org_descendants {
 }
 
 sub get_org_ancestors {
-	my($self, $org_id) = @_;
+	my($self, $org_id, $use_cache) = @_;
+
+    my ($cache, $orgs);
+
+    if ($use_cache) {
+        $cache = OpenSRF::Utils::Cache->new("global", 0);
+        $orgs = $cache->get_cache("org.ancestors.$org_id");
+        return $orgs if $orgs;
+    }
 
 	my $org_list = OpenILS::Utils::CStoreEditor->new->json_query({
 		select => {
@@ -1473,9 +1524,10 @@ sub get_org_ancestors {
 		where => {id => $org_id}
 	});
 
-	my @orgs;
-	push(@orgs, $_->{id}) for @$org_list;
-	return \@orgs;
+	$orgs = [ map { $_->{id} } @$org_list ];
+
+    $cache->put_cache("org.ancestors.$org_id", $orgs) if $use_cache;
+	return $orgs;
 }
 
 sub get_org_full_path {
@@ -1932,6 +1984,148 @@ sub bib_container_items_via_search {
     } @$items;
 
     return [map { $ordering_hash{$_} } @$id_list];
+}
+
+# returns undef on success, Event on error
+sub log_user_activity {
+    my ($class, $user_id, $who, $what, $e, $async) = @_;
+
+    my $commit = 0;
+    if (!$e) {
+        $e = OpenILS::Utils::CStoreEditor->new(xact => 1);
+        $commit = 1;
+    }
+
+    my $res = $e->json_query({
+        from => [
+            'actor.insert_usr_activity', 
+            $user_id, $who, $what, OpenSRF::AppSession->ingress
+        ]
+    });
+
+    if ($res) { # call returned OK
+
+        $e->commit   if $commit and @$res;
+        $e->rollback if $commit and !@$res;
+
+    } else {
+        return $e->die_event;
+    }
+
+    return undef;
+}
+
+# I hate to put this here exactly, but this code needs to be shared between
+# the TPAC's mod_perl module and open-ils.serial.
+#
+# There is a reason every part of the query *except* those parts dealing
+# with scope are moved here from the code's origin in TPAC.  The serials
+# use case does *not* want the same scoping logic.
+#
+# Also, note that for the serials uses case, we may filter in OPAC visible
+# status and copy/call_number deletedness, but we don't filter on any
+# particular values for serial.item.status or serial.item.date_received.
+# Since we're only using this *after* winnowing down the set of issuances
+# that copies should be related to, I'm not sure we need any such serial.item
+# filters.
+
+sub basic_opac_copy_query {
+    ######################################################################
+    # Pass a defined value for either $rec_id OR ($iss_id AND $dist_id), #
+    # not both.                                                          #
+    ######################################################################
+    my ($self,$rec_id,$iss_id,$dist_id,$copy_limit,$copy_offset,$staff) = @_;
+
+    return {
+        select => {
+            acp => ['id', 'barcode', 'circ_lib', 'create_date',
+                    'age_protect', 'holdable'],
+            acpl => [
+                {column => 'name', alias => 'copy_location'},
+                {column => 'holdable', alias => 'location_holdable'}
+            ],
+            ccs => [
+                {column => 'name', alias => 'copy_status'},
+                {column => 'holdable', alias => 'status_holdable'}
+            ],
+            acn => [
+                {column => 'label', alias => 'call_number_label'},
+                {column => 'id', alias => 'call_number'}
+            ],
+            circ => ['due_date'],
+            acnp => [
+                {column => 'label', alias => 'call_number_prefix_label'},
+                {column => 'id', alias => 'call_number_prefix'}
+            ],
+            acns => [
+                {column => 'label', alias => 'call_number_suffix_label'},
+                {column => 'id', alias => 'call_number_suffix'}
+            ],
+            bmp => [
+                {column => 'label', alias => 'part_label'},
+            ],
+            ($iss_id ? (sitem => ["issuance"]) : ())
+        },
+
+        from => {
+            acp => {
+                ($iss_id ? (
+                    sitem => {
+                        fkey => 'id',
+                        field => 'unit',
+                        filter => {issuance => $iss_id},
+                        join => {
+                            sstr => { }
+                        }
+                    }
+                ) : ()),
+                acn => {
+                    join => {
+                        acnp => { fkey => 'prefix' },
+                        acns => { fkey => 'suffix' }
+                    },
+                    filter => [
+                        {deleted => 'f'},
+                        ($rec_id ? {record => $rec_id} : ())
+                    ],
+                },
+                circ => { # If the copy is circulating, retrieve the open circ
+                    type => 'left',
+                    filter => {checkin_time => undef}
+                },
+                acpl => {
+                    ($staff ? () : (filter => { opac_visible => 't' }))
+                },
+                ccs => {
+                    ($staff ? () : (filter => { opac_visible => 't' }))
+                },
+                aou => {},
+                acpm => {
+                    type => 'left',
+                    join => {
+                        bmp => { type => 'left' }
+                    }
+                }
+            }
+        },
+
+        where => {
+            '+acp' => {
+                deleted => 'f',
+                ($staff ? () : (opac_visible => 't'))
+            },
+            ($dist_id ? ( '+sstr' => { distribution => $dist_id } ) : ()),
+            ($staff ? () : ( '+aou' => { opac_visible => 't' } ))
+        },
+
+        order_by => [
+            {class => 'aou', field => 'name'},
+            {class => 'acn', field => 'label'}
+        ],
+
+        limit => $copy_limit,
+        offset => $copy_offset
+    };
 }
 
 1;

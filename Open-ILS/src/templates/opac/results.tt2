@@ -1,6 +1,4 @@
 [%  PROCESS "opac/parts/header.tt2";
-    PROCESS "opac/parts/config.tt2";
-    USE POSIX;
 
     WRAPPER "opac/parts/base.tt2";
     INCLUDE "opac/parts/topnav.tt2";
@@ -24,7 +22,7 @@
         <div id="results_header_bar">
             <div id="results_header_inner">
                 <div class="results_header_btns">
-                    <a href="[% ctx.opac_root %]/home">[% l('Another Search') %]</a>
+                    <a href="[% mkurl(ctx.opac_root _ '/home') %]">[% l('Another Search') %]</a>
                 </div>
                 <div class="results_header_btns">
                     <a href="[% mkurl(ctx.opac_root _ '/advanced') %]">[% l('Advanced Search') %]</a>
@@ -46,9 +44,9 @@
 
                     <div class='results_header_sel' id='simple-detail-view-links'>
                         [% IF CGI.param('detail_record_view') %]
-                        <a href="[% mkurl('', {detail_record_view => ''}) %]">[% l('Simple View') %]</a>
+                        <a href="[% mkurl('', {detail_record_view => ''}) %]">[% l('Show Fewer Details') %]</a>
                         [% ELSE %]
-                        <a href="[% mkurl('', {detail_record_view => 1}) %]">[% l('Detailed View') %]</a>
+                        <a href="[% mkurl('', {detail_record_view => 1}) %]">[% l('Show More Details') %]</a>
                         [% END %]
                     </div>
                     <div class="results_header_div"></div>

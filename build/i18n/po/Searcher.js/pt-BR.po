@@ -1,0 +1,178 @@
+# Brazilian Portuguese translation for evergreen
+# Copyright (c) 2012 Rosetta Contributors and Canonical Ltd 2012
+# This file is distributed under the same license as the evergreen package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: evergreen\n"
+"Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2011-04-18 21:45-0400\n"
+"PO-Revision-Date: 2012-04-19 01:16+0000\n"
+"Last-Translator: Aline D'Oleron <doleron.aline@gmail.com>\n"
+"Language-Team: Brazilian Portuguese <pt_BR@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Launchpad-Export-Date: 2012-04-20 04:44+0000\n"
+"X-Generator: Launchpad (build 15120)\n"
+
+#: Searcher.js:before
+msgid "Published Before"
+msgstr "Publicado antes"
+
+#: Searcher.js:lit_form
+msgid "Literary Form"
+msgstr "Forma Literária"
+
+#: Searcher.js:metabib
+msgid "Metarecord Search"
+msgstr ""
+
+#: Searcher.js:contains
+msgid "Contains"
+msgstr ""
+
+#: Searcher.js:more
+msgid "More..."
+msgstr "Mais ..."
+
+#: Searcher.js:after
+msgid "Published After"
+msgstr "Publicado depois"
+
+#: Searcher.js:basic
+msgid "Basic"
+msgstr "Básico"
+
+#: Searcher.js:modifiers
+msgid "Modifiers"
+msgstr "Modificadores"
+
+#: Searcher.js:item_type
+msgid "Type"
+msgstr ""
+
+#: Searcher.js:depth
+msgid "Search Depth"
+msgstr ""
+
+#: Searcher.js:available
+msgid "Available"
+msgstr "Disponível"
+
+#: Searcher.js:classed_searches
+msgid "Classed Searches"
+msgstr ""
+
+#: Searcher.js:item_form
+msgid "Form"
+msgstr ""
+
+#: Searcher.js:new_modifier
+msgid "New Modifier"
+msgstr ""
+
+#: Searcher.js:less
+msgid "...Less"
+msgstr ""
+
+#: Searcher.js:modifier_default
+msgid "-- Select a Modifier --"
+msgstr ""
+
+#: Searcher.js:during
+msgid "In Publication"
+msgstr ""
+
+#: Searcher.js:exact
+msgid "Exactly Matches"
+msgstr ""
+
+#: Searcher.js:advanced
+msgid "Advanced"
+msgstr "Avançado"
+
+#: Searcher.js:between
+msgid "Published Between"
+msgstr ""
+
+#: Searcher.js:new_filter
+msgid "New Filter"
+msgstr "Novo Filtro"
+
+#: Searcher.js:faceted_searches
+msgid "Facets"
+msgstr ""
+
+#: Searcher.js:perform_search
+msgid "Go!"
+msgstr ""
+
+#: Searcher.js:remove
+msgid "Remove"
+msgstr "Remover"
+
+#: Searcher.js:audience
+msgid "Audience"
+msgstr ""
+
+#: Searcher.js:format
+msgid "Type and Form"
+msgstr ""
+
+#: Searcher.js:descending
+msgid "Sort Descending"
+msgstr "Ordenar em Ordem Decrescente"
+
+#: Searcher.js:new_facet
+msgid "New Facet"
+msgstr ""
+
+#: Searcher.js:and
+msgid "AND"
+msgstr ""
+
+#: Searcher.js:vr_format
+msgid "Videorecording Format"
+msgstr ""
+
+#: Searcher.js:staff
+msgid "Staff Search"
+msgstr ""
+
+#: Searcher.js:site
+msgid "Site"
+msgstr ""
+
+#: Searcher.js:notcontains
+msgid "Does Not Contain"
+msgstr ""
+
+#: Searcher.js:sort
+msgid "Sort Axis"
+msgstr ""
+
+#: Searcher.js:filters
+msgid "Filters"
+msgstr ""
+
+#: Searcher.js:bib_level
+msgid "Bibliographic Level"
+msgstr ""
+
+#: Searcher.js:filter_default
+msgid "-- Select a Filter --"
+msgstr "-- Selecionar um filtro --"
+
+#: Searcher.js:ascending
+msgid "Sort Ascending"
+msgstr "Ordenar em Ordem Crescente"
+
+#: Searcher.js:or
+msgid "OR"
+msgstr ""
+
+#: Searcher.js:statuses
+msgid "Statuses"
+msgstr ""

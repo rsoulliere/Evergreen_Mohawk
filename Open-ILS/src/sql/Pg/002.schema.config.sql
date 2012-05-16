@@ -46,6 +46,7 @@ INSERT INTO config.internal_flag (name) VALUES ('ingest.disable_metabib_full_rec
 INSERT INTO config.internal_flag (name) VALUES ('ingest.disable_metabib_rec_descriptor');
 INSERT INTO config.internal_flag (name) VALUES ('ingest.disable_metabib_field_entry');
 INSERT INTO config.internal_flag (name) VALUES ('ingest.assume_inserts_only');
+INSERT INTO config.internal_flag (name) VALUES ('serial.rematerialize_on_same_holding_code');
 
 CREATE TABLE config.global_flag (
     label   TEXT    NOT NULL
@@ -86,7 +87,7 @@ CREATE TRIGGER no_overlapping_deps
     BEFORE INSERT OR UPDATE ON config.db_patch_dependencies
     FOR EACH ROW EXECUTE PROCEDURE evergreen.array_overlap_check ('deprecates');
 
-INSERT INTO config.upgrade_log (version, applied_to) VALUES ('0675', :eg_version); -- gmc/berick
+INSERT INTO config.upgrade_log (version, applied_to) VALUES ('0711', :eg_version); -- senator
 
 CREATE TABLE config.bib_source (
 	id		SERIAL	PRIMARY KEY,
@@ -165,8 +166,10 @@ INSERT INTO config.biblio_fingerprint (name, xpath, format, first_word)
     );
 
 CREATE TABLE config.metabib_class (
-    name    TEXT    PRIMARY KEY,
-    label   TEXT    NOT NULL UNIQUE
+    name     TEXT    PRIMARY KEY,
+    label    TEXT    NOT NULL UNIQUE,
+    buoyant  BOOL    DEFAULT FALSE NOT NULL,
+    restrict BOOL    DEFAULT FALSE NOT NULL
 );
 
 CREATE TABLE config.metabib_field (
@@ -179,7 +182,10 @@ CREATE TABLE config.metabib_field (
 	format		TEXT	NOT NULL REFERENCES config.xml_transform (name) DEFAULT 'mods33',
 	search_field	BOOL	NOT NULL DEFAULT TRUE,
 	facet_field	BOOL	NOT NULL DEFAULT FALSE,
-    facet_xpath TEXT
+	browse_field	BOOL	NOT NULL DEFAULT TRUE,
+	browse_xpath   TEXT,
+	facet_xpath	TEXT,
+	restrict	BOOL    DEFAULT FALSE NOT NULL
 );
 COMMENT ON TABLE config.metabib_field IS $$
 XPath used for record indexing ingest
@@ -731,11 +737,14 @@ CREATE TABLE config.record_attr_index_norm_map (
 );
 
 CREATE TABLE config.coded_value_map (
-    id          SERIAL  PRIMARY KEY,
-    ctype       TEXT    NOT NULL REFERENCES config.record_attr_definition (name) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
-    code        TEXT    NOT NULL,
-    value       TEXT    NOT NULL,
-    description TEXT
+    id              SERIAL  PRIMARY KEY,
+    ctype           TEXT    NOT NULL REFERENCES config.record_attr_definition (name) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    code            TEXT    NOT NULL,
+    value           TEXT    NOT NULL,
+    description     TEXT,
+    opac_visible    BOOL    NOT NULL DEFAULT TRUE, -- For TPac selectors
+    search_label    TEXT,
+    is_simple       BOOL    NOT NULL DEFAULT FALSE
 );
 
 CREATE VIEW config.language_map AS SELECT code, value FROM config.coded_value_map WHERE ctype = 'item_lang';
@@ -802,11 +811,14 @@ BEGIN
         END LOOP;
     END IF;
 
-    IF REGEXP_REPLACE(VERSION(),E'^.+?(\\d+\\.\\d+).*?$',E'\\1')::FLOAT > 8.2 THEN
-        NEW.index_vector = to_tsvector((TG_ARGV[0])::regconfig, value);
-    ELSE
-        NEW.index_vector = to_tsvector(TG_ARGV[0], value);
+    IF TG_TABLE_NAME::TEXT ~ 'browse_entry$' THEN
+        value :=  ARRAY_TO_STRING(
+            evergreen.regexp_split_to_array(value, E'\\W+'), ' '
+        );
+        value := public.search_normalize(value);
     END IF;
+
+    NEW.index_vector = to_tsvector((TG_ARGV[0])::regconfig, value);
 
     RETURN NEW;
 END;
@@ -942,5 +954,23 @@ CREATE TABLE config.sms_carrier (
     email_gateway   TEXT,
     active          BOOLEAN DEFAULT TRUE
 );
+
+CREATE TYPE config.usr_activity_group AS ENUM ('authen','authz','circ','hold','search');
+
+CREATE TABLE config.usr_activity_type (
+    id          SERIAL                      PRIMARY KEY, 
+    ewho        TEXT,
+    ewhat       TEXT,
+    ehow        TEXT,
+    label       TEXT                        NOT NULL, -- i18n
+    egroup      config.usr_activity_group   NOT NULL,
+    enabled     BOOL                        NOT NULL DEFAULT TRUE,
+    transient   BOOL                        NOT NULL DEFAULT FALSE,
+    CONSTRAINT  one_of_wwh CHECK (COALESCE(ewho,ewhat,ehow) IS NOT NULL)
+);
+
+CREATE UNIQUE INDEX unique_wwh ON config.usr_activity_type 
+    (COALESCE(ewho,''), COALESCE (ewhat,''), COALESCE(ehow,''));
+
 
 COMMIT;

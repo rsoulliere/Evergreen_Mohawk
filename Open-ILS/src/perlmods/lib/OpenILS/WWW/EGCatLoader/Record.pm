@@ -14,8 +14,18 @@ sub load_record {
     my $ctx = $self->ctx;
     $ctx->{page} = 'record';  
 
+    $self->timelog("load_record() began");
     my $org = $self->_get_search_lib();
-    my $depth = $self->cgi->param('depth') || $ctx->{get_aou}->($org)->ou_type->depth;
+    my $org_name = $ctx->{get_aou}->($org)->shortname;
+    my $pref_ou = $self->_get_pref_lib();
+    my $depth = $self->cgi->param('depth');
+    $depth = $ctx->{get_aou}->($org)->ou_type->depth 
+        unless defined $depth; # can be 0
+
+    my $copy_depth = $self->cgi->param('copy_depth');
+    $copy_depth = $depth unless defined $copy_depth; # can be 0
+    $self->ctx->{copy_depth} = $copy_depth;
+
     my $copy_limit = int($self->cgi->param('copy_limit') || 10);
     my $copy_offset = int($self->cgi->param('copy_offset') || 0);
 
@@ -26,28 +36,48 @@ sub load_record {
     if ($ctx->{staff_saved_search_size}) {
         $ctx->{saved_searches} = ($self->staff_load_searches)[1];
     }
+    $self->timelog("past staff saved searches");
 
     $self->fetch_related_search_info($rec_id);
+    $self->timelog("past related search info");
 
     # run copy retrieval in parallel to bib retrieval
     # XXX unapi
     my $cstore = OpenSRF::AppSession->create('open-ils.cstore');
     my $copy_rec = $cstore->request(
         'open-ils.cstore.json_query.atomic', 
-        $self->mk_copy_query($rec_id, $org, $depth, $copy_limit, $copy_offset)
+        $self->mk_copy_query($rec_id, $org, $copy_depth, $copy_limit, $copy_offset, $pref_ou)
     );
 
-    my (undef, @rec_data) = $self->get_records_and_facets([$rec_id], undef, {flesh => '{holdings_xml,bmp,mra,acp,acnp,acns}'});
+    my (undef, @rec_data) = $self->get_records_and_facets([$rec_id], undef, {
+        flesh => '{holdings_xml,bmp,mra,acp,acnp,acns}',
+        site => $org_name,
+        depth => $depth,
+        pref_lib => $pref_ou
+    });
+
+    $self->timelog("past get_records_and_facets()");
     $ctx->{bre_id} = $rec_data[0]->{id};
     $ctx->{marc_xml} = $rec_data[0]->{marc_xml};
 
     $ctx->{copies} = $copy_rec->gather(1);
+    $self->timelog("past store copy retrieval call");
     $ctx->{copy_limit} = $copy_limit;
     $ctx->{copy_offset} = $copy_offset;
 
     $ctx->{have_holdings_to_show} = 0;
     $ctx->{have_mfhd_to_show} = 0;
+
     $self->get_hold_copy_summary($rec_id, $org);
+
+    $self->timelog("past get_hold_copy_summary()");
+    $self->ctx->{bib_is_dead} = OpenILS::Application::AppUtils->is_true(
+        OpenILS::Utils::CStoreEditor->new->json_query({
+            select => { bre => [ 'deleted' ] },
+            from => 'bre',
+            where => { 'id' => $rec_id }
+        })->[0]->{deleted}
+    );
 
     $cstore->kill_me;
 
@@ -55,16 +85,12 @@ sub load_record {
         $ctx->{get_org_setting}->
             ($org, "opac.fully_compressed_serial_holdings")
     ) {
-        $ctx->{holding_summaries} =
-            $self->get_holding_summaries($rec_id, $org, $depth);
-
-        $ctx->{have_holdings_to_show} =
-            scalar(@{$ctx->{holding_summaries}->{basic}}) ||
-            scalar(@{$ctx->{holding_summaries}->{index}}) ||
-            scalar(@{$ctx->{holding_summaries}->{supplement}});
+        # We're loading this data here? Are we therefore assuming that we
+        # *are* going to display something in the "issues" expandy?
+        $self->load_serial_holding_summaries($rec_id, $org, $copy_depth);
     } else {
         $ctx->{mfhd_summaries} =
-            $self->get_mfhd_summaries($rec_id, $org, $depth);
+            $self->get_mfhd_summaries($rec_id, $org, $copy_depth);
 
         if ($ctx->{mfhd_summaries} && scalar(@{$ctx->{mfhd_summaries}})
         ) {
@@ -72,14 +98,15 @@ sub load_record {
         };
     }
 
+    $self->timelog("past serials holding stuff");
+
     my %expandies = (
         marchtml => sub {
             $ctx->{marchtml} = $self->mk_marc_html($rec_id);
         },
         issues => sub {
-            $ctx->{expanded_holdings} =
-                $self->get_expanded_holdings($rec_id, $org, $depth)
-                if $ctx->{have_holdings_to_show};
+            return;
+            # XXX this needed?
         },
         cnbrowse => sub {
             $self->prepare_browse_call_numbers();
@@ -98,6 +125,7 @@ sub load_record {
         }
     }
 
+    $self->timelog("past expandies");
     return Apache2::Const::OK;
 }
 
@@ -135,83 +163,11 @@ sub mk_copy_query {
     my $depth = shift;
     my $copy_limit = shift;
     my $copy_offset = shift;
+    my $pref_ou = shift;
 
-    my $query = {
-        select => {
-            acp => ['id', 'barcode', 'circ_lib', 'create_date', 'age_protect', 'holdable'],
-            acpl => [
-                {column => 'name', alias => 'copy_location'},
-                {column => 'holdable', alias => 'location_holdable'}
-            ],
-            ccs => [
-                {column => 'name', alias => 'copy_status'},
-                {column => 'holdable', alias => 'status_holdable'}
-            ],
-            acn => [
-                {column => 'label', alias => 'call_number_label'},
-                {column => 'id', alias => 'call_number'}
-            ],
-            circ => ['due_date'],
-            acnp => [
-                {column => 'label', alias => 'call_number_prefix_label'},
-                {column => 'id', alias => 'call_number_prefix'}
-            ],
-            acns => [
-                {column => 'label', alias => 'call_number_suffix_label'},
-                {column => 'id', alias => 'call_number_suffix'}
-            ],
-            bmp => [
-                {column => 'label', alias => 'part_label'},
-            ]
-        },
-
-        from => {
-            acp => {
-                acn => { 
-                    join => { 
-                        acnp => { fkey => 'prefix' },
-                        acns => { fkey => 'suffix' }
-                    },
-                    filter => [{deleted => 'f'}, {record => $rec_id}],
-                },
-                circ => { # If the copy is circulating, retrieve the open circ
-                    type => 'left',
-                    filter => {checkin_time => undef}
-                },
-                acpl => {},
-                ccs => {},
-                aou => {},
-                acpm => {
-                    type => 'left',
-                    join => {
-                        bmp => { type => 'left' }
-                    }
-                }
-            }
-        },
-
-        where => {
-            '+acp' => {deleted => 'f' }
-        },
-
-        order_by => [
-            {class => 'aou', field => 'name'}, 
-            {class => 'acn', field => 'label'}
-        ],
-
-        limit => $copy_limit,
-        offset => $copy_offset
-    };
-
-    # XXX In the future, $sort_org should be understood to be an abstration
-    # that refers to something configurable, not necessariyl physical_loc.
-
-    if (my $sort_org = $self->ctx->{physical_loc}) {
-        unshift @{$query->{order_by}}, {
-            class => 'acp', field => 'circ_lib', transform => 'numeric_eq',
-            params => [$sort_org], direction => 'desc'
-        };
-    }
+    my $query = $U->basic_opac_copy_query(
+        $rec_id, undef, undef, $copy_limit, $copy_offset, $self->ctx->{is_staff}
+    );
 
     if($org != $self->ctx->{aou_tree}->()->id) { 
         # no need to add the org join filter if we're not actually filtering
@@ -223,7 +179,7 @@ sub mk_copy_query {
                     in => {
                         select => {aou => [{
                             column => 'id', 
-                            transform => 'actor.org_unit_descendants', 
+                            transform => 'actor.org_unit_descendants',
                             result_field => 'id', 
                             params => [$depth]
                         }]},
@@ -232,15 +188,20 @@ sub mk_copy_query {
                     }
                 }
             }
-        }
+        };
     };
 
-    # Filter hidden items if this is the public catalog
-    unless($self->ctx->{is_staff}) { 
-        $query->{where}->{'+acp'}->{opac_visible} = 't';
-        $query->{from}->{'acp'}->{'acpl'}->{filter} = {opac_visible => 't'};
-        $query->{from}->{'acp'}->{'ccs'}->{filter} = {opac_visible => 't'};
-    }
+    # Unsure if we want these in the shared function, leaving here for now
+    unshift(@{$query->{order_by}},
+        { class => "aou", field => 'id',
+          transform => 'evergreen.rank_ou', params => [$org, $pref_ou]
+        }
+    );
+    push(@{$query->{order_by}},
+        { class => "acp", field => 'status',
+          transform => 'evergreen.rank_cp_status'
+        }
+    );
 
     return $query;
 }
@@ -254,17 +215,92 @@ sub mk_marc_html {
         'open-ils.search.biblio.record.html', $rec_id, 1);
 }
 
-sub get_holding_summaries {
+sub load_serial_holding_summaries {
     my ($self, $rec_id, $org, $depth) = @_;
 
+    my $limit = $self->cgi->param("slimit") || 10;
+    my $offset = $self->cgi->param("soffset") || 0;
+
     my $serial = create OpenSRF::AppSession("open-ils.serial");
-    my $result = $serial->request(
-        "open-ils.serial.bib.summary_statements",
-        $rec_id, {"org_id" => $org, "depth" => $depth}
+
+    # First, get the tree of /summaries/ of holdings.
+    my $tree = $serial->request(
+        "open-ils.serial.holding_summary_tree.by_bib",
+        $rec_id, $org, $depth, $limit, $offset
     )->gather(1);
 
+    return if $self->apache_log_if_event(
+        $tree, "getting holding summary tree for record $rec_id"
+    );
+
+    # Next, if requested, get a list of individual holdings under a
+    # particular summary.
+    my $holdings;
+    my $summary_id = int($self->cgi->param("sid") || 0);
+    my $summary_type = $self->cgi->param("stype");
+
+    if ($summary_id and $summary_type) {
+        my $expand_path = [ $self->cgi->param("sepath") ],
+        my $expand_limit = $self->cgi->param("selimit");
+        my $expand_offsets = [ $self->cgi->param("seoffset") ];
+        my $auto_expand_first = 0;
+
+        if (not @$expand_offsets) {
+            $expand_offsets = undef;
+            $auto_expand_first = 1;
+        }
+
+        $holdings = $serial->request(
+            "open-ils.serial.holdings.grouped_by_summary",
+            $summary_type, $summary_id,
+            $expand_path, $expand_limit, $expand_offsets,
+            $auto_expand_first,
+            1 + ($self->ctx->{is_staff} ? 1 : 0)
+        )->gather(1);
+
+        if ($holdings and ref $holdings eq "ARRAY") {
+            $self->place_holdings_with_summary(
+                    $tree, $holdings, $summary_id, $summary_type
+            ) or $self->apache->log->warn(
+                "could not place holdings within summary tree"
+            );
+        } else {
+            $self->apache_log_if_event(
+                $holdings, "getting holdings grouped by summary $summary_id"
+            );
+        }
+    }
+
     $serial->kill_me;
-    return $result;
+
+    # The presence of any keys in the tree hash other than 'more' means that we
+    # must have /something/ we could show.
+    $self->ctx->{have_holdings_to_show} = grep { $_ ne 'more' } (keys %$tree);
+
+    $self->ctx->{holding_summary_tree} = $tree;
+}
+
+# This helper to load_serial_holding_summaries() recursively searches in
+# $tree for a holding summary matching $sid and $stype, and places $holdings
+# within the node for that summary. IOW, this is about showing expanded
+# holdings under their "parent" summary.
+sub place_holdings_with_summary {
+    my ($self, $tree, $holdings, $sid, $stype) = @_;
+
+    foreach my $sum (@{$tree->{holding_summaries}}) {
+        if ($sum->{id} == $sid and $sum->{summary_type} eq $stype) {
+            $sum->{holdings} = $holdings;
+            return 1;
+        }
+    }
+
+    foreach my $child (@{$tree->{children}}) {
+        return 1 if $self->place_holdings_with_summary(
+            $child, $holdings, $sid, $stype
+        );
+    }
+
+    return;
 }
 
 sub get_mfhd_summaries {
@@ -274,27 +310,6 @@ sub get_mfhd_summaries {
     my $result = $serial->request(
         "open-ils.search.serial.record.bib.retrieve",
         $rec_id, $org, $depth
-    )->gather(1);
-
-    $serial->kill_me;
-    return $result;
-}
-
-sub get_expanded_holdings {
-    my ($self, $rec_id, $org, $depth) = @_;
-
-    my $holding_limit = int($self->cgi->param("holding_limit") || 10);
-    my $holding_offset = int($self->cgi->param("holding_offset") || 0);
-    my $type = $self->cgi->param("expand_holding_type");
-
-    my $serial =  create OpenSRF::AppSession("open-ils.serial");
-    my $result = $serial->request(
-        "open-ils.serial.received_siss.retrieve.by_bib.atomic",
-        $rec_id, {
-            "ou" => $org, "depth" => $depth,
-            "limit" => $holding_limit, "offset" => $holding_offset,
-            "type" => $type
-        }
     )->gather(1);
 
     $serial->kill_me;
@@ -352,6 +367,35 @@ sub get_hold_copy_summary {
     $self->ctx->{copy_summary} = $req1->recv->content;
 
     $search->kill_me;
+}
+
+sub load_print_record {
+    my $self = shift;
+
+    my $rec_id = $self->ctx->{page_args}->[0] 
+        or return Apache2::Const::HTTP_BAD_REQUEST;
+
+    $self->{ctx}->{bre_id} = $rec_id;
+    $self->{ctx}->{printable_record} = $U->simplereq(
+        'open-ils.search',
+        'open-ils.search.biblio.record.print', $rec_id);
+
+    return Apache2::Const::OK;
+}
+
+sub load_email_record {
+    my $self = shift;
+
+    my $rec_id = $self->ctx->{page_args}->[0] 
+        or return Apache2::Const::HTTP_BAD_REQUEST;
+
+    $self->{ctx}->{bre_id} = $rec_id;
+    $U->simplereq(
+        'open-ils.search',
+        'open-ils.search.biblio.record.email', 
+        $self->ctx->{authtoken}, $rec_id);
+
+    return Apache2::Const::OK;
 }
 
 1;

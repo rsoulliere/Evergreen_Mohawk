@@ -215,7 +215,7 @@ cat.util.transfer_copies = function(params) {
                 && (robj.ilsevent != 1208 /* TITLE_LAST_COPY */)
                 && (robj.ilsevent != 5000 /* PERM_DENIED */)
             ) {
-            throw(robj);
+                throw(robj);
             }
         } else {
             alert($("catStrings").getString('staff.cat.util.transfer_copies.successful_transfer'));

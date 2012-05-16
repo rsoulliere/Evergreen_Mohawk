@@ -28,7 +28,7 @@ sub quote_phrase_value {
     my $right_anchored = $value =~ m/\$$/;
     $value =~ s/\^//   if $left_anchored;
     $value =~ s/\$$//  if $right_anchored;
-    $value =~ quotemeta($value);
+    $value = quotemeta($value);
     $value = '^' . $value if $left_anchored;
     $value = "$value\$"   if $right_anchored;
     return $self->quote_value($value);
@@ -422,7 +422,9 @@ __PACKAGE__->add_search_filter( 'during' );
 # used by layers above this
 __PACKAGE__->add_search_filter( 'statuses' );
 __PACKAGE__->add_search_filter( 'locations' );
+__PACKAGE__->add_search_filter( 'location_groups' );
 __PACKAGE__->add_search_filter( 'site' );
+__PACKAGE__->add_search_filter( 'pref_ou' );
 __PACKAGE__->add_search_filter( 'lasso' );
 __PACKAGE__->add_search_filter( 'my_lasso' );
 __PACKAGE__->add_search_filter( 'depth' );
@@ -693,13 +695,13 @@ sub rel_bump {
     return '' if (!@$only_atoms);
 
     if ($bump eq 'first_word') {
-        return " /* first_word */ COALESCE(NULLIF( (search_normalize(".$node->table_alias.".value) ~ ('^'||search_normalize(".$self->QueryParser->quote_value($only_atoms->[0]->content)."))), FALSE )::INT * $multiplier, 1)";
+        return " /* first_word */ COALESCE(NULLIF( (search_normalize(".$node->table_alias.".value) ~ ('^'||search_normalize(".$self->QueryParser->quote_phrase_value($only_atoms->[0]->content)."))), FALSE )::INT * $multiplier, 1)";
     } elsif ($bump eq 'full_match') {
         return " /* full_match */ COALESCE(NULLIF( (search_normalize(".$node->table_alias.".value) ~ ('^'||".
-                    join( "||' '||", map { "search_normalize(".$self->QueryParser->quote_value($_->content).")" } @$only_atoms )."||'\$')), FALSE )::INT * $multiplier, 1)";
+                    join( "||' '||", map { "search_normalize(".$self->QueryParser->quote_phrase_value($_->content).")" } @$only_atoms )."||'\$')), FALSE )::INT * $multiplier, 1)";
     } elsif ($bump eq 'word_order') {
         return " /* word_order */ COALESCE(NULLIF( (search_normalize(".$node->table_alias.".value) ~ (".
-                    join( "||'.*'||", map { "search_normalize(".$self->QueryParser->quote_value($_->content).")" } @$only_atoms ).")), FALSE )::INT * $multiplier, 1)";
+                    join( "||'.*'||", map { "search_normalize(".$self->QueryParser->quote_phrase_value($_->content).")" } @$only_atoms ).")), FALSE )::INT * $multiplier, 1)";
     }
 
     return '';

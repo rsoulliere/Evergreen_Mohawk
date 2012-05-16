@@ -44,11 +44,12 @@ var rdetailPrev = null;
 var rdetailNext = null;
 var rdetailStart = null;
 var rdetailEnd = null;
+var rdetailBackToResults = null;
 
 var mfhdDetails = [];
 var orgHiding = false;
 
-if(location.href.match(/&place_hold=1/)) {
+if(location.href.match(/&place_hold=1/) || location.href.match(/&show_login=1/)) {
     // prevent load flicker between canvases
     hideMe(dojo.byId('canvas_main'));
 }
@@ -110,6 +111,7 @@ function rdetailSetPaging(ids) {
 		rdetailNext = function() { _rdetailNav(nextRecord); };
 		rdetailEnd = function() { _rdetailNav(cachedRecords.ids[cachedRecords.ids.length-1]); };
 	}
+    rdetailBackToResults = function() { location.href = prevRResults(); };
 
 	runEvt('rdetail', 'nextPrevDrawn', i, cachedRecords.ids.length);
 }
@@ -1176,22 +1178,6 @@ function rdetailBuildBrowseInfo(row, cn, local, orgNode, cl) {
 		$n(row, 'details').setAttribute('href', dHref);
 	unHideMe( $n(row, 'browse') )
 		$n(row, 'browse').setAttribute('href', bHref);
-
-
-if (rdetailEnableQRCode) {
-        unHideMe( $('QRColumn') ); 
-        unHideMe( $n(row, 'QR_cell') );
-        tit = record.title(); 
-        $n(row, 'QR_cell').appendChild(elem('img', {src:'http://chart.apis.google.com/chart?chs=75x75&cht=qr&chld=L|0&chl='+tit+'%0A'+orgNode.name()+' '+cl+'%0A'+cn}));
-        $n(row, 'QR_cell').appendChild(elem('br'));
-        QRHelplink = document.createElement( 'a' );
-        QRHelplink.href = 'http://brain.mohawkcollege.ca/QRCodes';
-        QRHelplink.target = '_blank';
-        QRHelplink.appendChild(text('What is this?'));
-        $n(row, 'QR_cell').appendChild( QRHelplink );
-        $n(row, 'QR_cell').appendChild(elem('p'));               
-}
-
 
 	if(isXUL()) {
 		unHideMe($n(row, 'hold_div'));

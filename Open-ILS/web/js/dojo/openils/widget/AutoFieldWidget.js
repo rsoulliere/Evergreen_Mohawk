@@ -46,6 +46,9 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
          *      The fetched objects should be passed to the callback as an array
          *  disableQuery : dojo.data query passed to FilteringTreeSelect-based widgets to disable
          *      (but leave visible) certain options.  
+         *  useWriteStore : tells AFW to use a dojo.data.ItemFileWriteStore instead of a ReadStore for
+         *      data stores created with dynamic data.  This allows the caller to add/remove items from 
+         *      the store.
          */
         constructor : function(args) {
             for(var k in args)
@@ -102,6 +105,13 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
             this.cache[this.auth] = this.cache[this.auth] || {};
             this.cache[this.auth].single = this.cache[this.auth].single || {};
             this.cache[this.auth].list = this.cache[this.auth].list || {};
+
+            if (this.useWriteStore) {
+                dojo.require('dojo.data.ItemFileWriteStore');
+                this.storeConstructor = dojo.data.ItemFileWriteStore;
+            } else {
+                this.storeConstructor = dojo.data.ItemFileReadStore;
+            }
         },
 
         /**
@@ -379,14 +389,18 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
             }
 
             // then try the single object cache
-            if(this.cache[this.auth].single[lclass] && 
-                    this.cache[this.auth].single[lclass][this.widgetValue] &&
-                    this.cache[this.auth].single[lclass][this.widgetValue][self.labelFormat || '']) {
-                this.widgetValue = this.cache[this.auth].single[lclass][this.widgetValue][self.labelFormat || ''];
+            var item;
+            if(this.cache[this.auth].single[lclass] && (
+                item = this.cache[this.auth].single[lclass][this.widgetValue]) ) {
+
+                this.widgetValue = (this.labelFormat) ? 
+                    this._applyLabelFormat(item.toStoreItem(), this.labelFormat) :
+                    item[linkInfo.vfield.selector]();
+
                 return;
             }
 
-            console.log("Fetching sync object " + lclass + " : " + this.widgetValue);
+            console.log("Fetching linked object " + lclass + " : " + this.widgetValue);
 
             // if those fail, fetch the linked object
             this.async = true;
@@ -396,22 +410,14 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
                 oncomplete : function(r) {
                     var item = openils.Util.readResponse(r);
 
-                    var newvalue = item[linkInfo.vfield.selector]();
-
-                    var labelCacheKey = ''; 
-
-                    if(self.labelFormat) {
-                        labelCacheKey = self.labelFormat;
-                        self.widgetValue = self._applyLabelFormat(item.toStoreItem(), self.labelFormat);
-                    } else {
-                        self.widgetValue = newvalue;
-                    }
-
+                    // cache the true object under its real value
                     if(!self.cache[self.auth].single[lclass])
                         self.cache[self.auth].single[lclass] = {};
-                    if(!self.cache[self.auth].single[lclass][self.widgetValue])
-                        self.cache[self.auth].single[lclass][self.widgetValue] = {};
-                    self.cache[self.auth].single[lclass][self.widgetValue][labelCacheKey] = newvalue;
+                    self.cache[self.auth].single[lclass][self.widgetValue] = item;
+
+                    self.widgetValue = (self.labelFormat) ? 
+                        self._applyLabelFormat(item.toStoreItem(), self.labelFormat) :
+                        item[linkInfo.vfield.selector]();
 
                     self.widget.startup();
                     self._widgetLoaded();
@@ -521,7 +527,7 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
                         );
                     }
 
-                    self.widget.store = new dojo.data.ItemFileReadStore(storeData);
+                    self.widget.store = new self.storeConstructor(storeData);
                     self.cache[self.auth].list[linkClass] = self.widget.store;
 
                 } else {
@@ -703,7 +709,7 @@ if(!dojo._hasResource['openils.widget.AutoFieldWidget']) {
                     var list = openils.Util.readResponse(r, false, true);
                     if(!list) return;
                     self.widget.store = 
-                        new dojo.data.ItemFileReadStore({data:fieldmapper.acpl.toStoreData(list)});
+                        new self.storeConstructor({data:fieldmapper.acpl.toStoreData(list)});
                     self.cache.copyLocStore = self.widget.store;
                     self.widget.startup();
                     self._widgetLoaded();

@@ -1,5 +1,7 @@
 README for Evergreen master
 ===========================
+:toc:
+:numbered:
 
 Preamble: referenced user accounts
 ----------------------------------
@@ -52,7 +54,7 @@ source directory to generate the configure script and Makefiles:
 
 [source, bash]
 ------------------------------------------------------------------------------
-./autogen.sh
+autoreconf -i
 ------------------------------------------------------------------------------
 
 After running `make install`, developers also need to install the Dojo Toolkit
@@ -107,25 +109,20 @@ add-apt-repository ppa:pitti/postgresql
    retrieve the new packages from the backports repository.
 4. Issue the following commands as the *root* Linux account to install
    prerequisites using the `Makefile.install` prerequisite installer,
-   substituting `debian-squeeze`, `fedora16`, `ubuntu-lucid`, `ubuntu-precise`,
-   `centos`, or `rhel` for <osname> below:
+   substituting `debian-squeeze`, `fedora16`, `ubuntu-lucid`, or
+   `ubuntu-precise` for <osname> below:
 +
 [source, bash]
 ------------------------------------------------------------------------------
 make -f Open-ILS/src/extras/Makefile.install <osname>
 ------------------------------------------------------------------------------
 +
-[NOTE]
-`centos` and `rhel` are less tested than the `debian`, `fedora`,
-and `ubuntu` options.  Your patches and suggestions for improvement are
-welcome!
-+
 5. Add the libdbi-libdbd libraries to the system dynamic library path by
    issuing the following commands as the *root* Linux account:
 +
 [NOTE]
-You should skip this step if installing on Ubuntu 12.04 LTS (Precise
-Pangolin).  The ubuntu-precise target uses libdbd-pgsql from packages.
+You should skip this step if installing on Ubuntu Precise. The ubuntu-precise
+target uses libdbd-pgsql from packages.
 +
 .Debian / Ubuntu Lucid
 [source, bash]
@@ -215,7 +212,7 @@ cd /etc/apache2/ssl
 .Fedora
 [source,bash]
 ------------------------------------------------------------------------------
-cp Open-ILS/examples/apache/eg.conf       /etc/httpd/sites-available/
+cp Open-ILS/examples/apache/eg.conf       /etc/httpd/conf.d/
 cp Open-ILS/examples/apache/eg_vhost.conf /etc/httpd/
 cp Open-ILS/examples/apache/startup.pl    /etc/httpd/
 # Now set up SSL
@@ -239,6 +236,8 @@ place.
   a. Replace `Allow from 10.0.0.0/8` with `Allow from all` (to enable
      access to the offline upload / execute interface from any workstation on
      any network - note that you must secure this for a production instance)
+  b. (Fedora): Change references from the non-existent `/etc/apache2/` directory
+     to `/etc/httpd/`.
 4. Change the user for the Apache server.
   * (Debian and Ubuntu): As the *root* Linux account, edit
     `/etc/apache2/envvars`.  Change `export APACHE_RUN_USER=www-data` to 
@@ -267,7 +266,10 @@ place.
 </IfModule>
 ------------------------------------------------------------------------------
 +
-6. (Debian and Ubuntu): As the *root* Linux account, enable the Evergreen site:
+6. (Fedora): As the *root* Linux account, edit the `/etc/httpd/eg_vhost.conf`
+   file to change references from the non-existent `/etc/apache2/` directory
+   to `/etc/httpd/`.
+7. (Debian and Ubuntu): As the *root* Linux account, enable the Evergreen site:
 +
 [source,bash]
 ------------------------------------------------------------------------------
@@ -308,11 +310,17 @@ Creating the Evergreen database
 By default, the `Makefile.install` prerequisite installer does not install
 the PostgreSQL 9 database server required by every Evergreen system;
 for production use, most libraries install the PostgreSQL database server on a
-dedicated machine. You can install the packages required by Debian or Ubuntu
+dedicated machine. You can install the packages required by Debian or Ubuntu Lucid
 on the machine of your choice using the following commands as the *root*
 Linux account:
 
-.(Debian / Ubuntu) Installing PostgreSQL 9.1 server packages
+.(Debian and Ubuntu Lucid) Installing PostgreSQL 9.1 server packages
+[source, bash]
+------------------------------------------------------------------------------
+make -f Open-ILS/src/extras/Makefile.install install_pgsql_server_backport_debs_91
+------------------------------------------------------------------------------
+
+.(Ubuntu Precise) Installing PostgreSQL 9.1 server packages
 [source, bash]
 ------------------------------------------------------------------------------
 make -f Open-ILS/src/extras/Makefile.install install_pgsql_server_debs_91
@@ -325,6 +333,7 @@ using the following commands as the *root* Linux account:
 [source, bash]
 ------------------------------------------------------------------------------
 make -f Open-ILS/src/extras/Makefile.install install_fedora_pgsql_server
+postgresql-setup initdb
 ------------------------------------------------------------------------------
 
 For a standalone PostgreSQL server, install the following Perl modules as the
@@ -388,13 +397,20 @@ Evergreen administrator account to your requested values.
 Creating the database on a remote server
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In a production instance of Evergreen, your PostgreSQL server should be
-installed on a dedicated server. For PostgreSQL 9.1 and later you should be
-able to continue to use the --create-database flag on eg_db_config.pl, without
-needing to install any server modules on your application machine. For
-PostgreSQL 9.0 you can either:
+installed on a dedicated server.
+
+PostgreSQL 9.1 and later
+^^^^^^^^^^^^^^^^^^^^^^^^
+To create the database instance on a remote database server running PostgreSQL
+9.1 or later, simply use the `--create-database` flag on `eg_db_config.pl`.
+
+For PostgreSQL 9.0
+^^^^^^^^^^^^^^^^^^
+To create the database instance on a remote database server running PostgreSQL
+9.0, you can either:
 
   *  Install the PostgreSQL contrib modules on the machine on which you
-     are installing the Evergreen code, and use the --create-database
+     are installing the Evergreen code, and use the `--create-database`
      option from that machine, or
   *  Copy the `Open-ILS/src/sql/Pg/create_database.sql` script to your
      PostgreSQL server and invoke it as the *postgres* Linux account:
@@ -524,3 +540,10 @@ Getting help
 Need help installing or using Evergreen? Join the mailing lists at
 http://evergreen-ils.org/listserv.php or contact us on the Freenode
 IRC network on the #evergreen channel.
+
+License
+-------
+This work is licensed under the Creative Commons Attribution-ShareAlike 3.0
+Unported License. To view a copy of this license, visit
+http://creativecommons.org/licenses/by-sa/3.0/ or send a letter to Creative
+Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.

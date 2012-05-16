@@ -1,0 +1,258 @@
+diff --git a/Open-ILS/web/images/format_icons/mattype/2.png b/Open-ILS/web/images/format_icons/mattype/2.png
+index b874f44..dad59dc 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/2.png and b/Open-ILS/web/images/format_icons/mattype/2.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/5.png b/Open-ILS/web/images/format_icons/mattype/5.png
+index dba509d..8036674 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/5.png and b/Open-ILS/web/images/format_icons/mattype/5.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/a.png b/Open-ILS/web/images/format_icons/mattype/a.png
+index 57ee12c..623b0d2 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/a.png and b/Open-ILS/web/images/format_icons/mattype/a.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/b.png b/Open-ILS/web/images/format_icons/mattype/b.png
+index c227660..2f43f92 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/b.png and b/Open-ILS/web/images/format_icons/mattype/b.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/c.png b/Open-ILS/web/images/format_icons/mattype/c.png
+index 26f4818..46d1571 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/c.png and b/Open-ILS/web/images/format_icons/mattype/c.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/d.png b/Open-ILS/web/images/format_icons/mattype/d.png
+index 9f4b0f9..c134cef 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/d.png and b/Open-ILS/web/images/format_icons/mattype/d.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/e.png b/Open-ILS/web/images/format_icons/mattype/e.png
+index 96d0eed..d258dd7 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/e.png and b/Open-ILS/web/images/format_icons/mattype/e.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/f.png b/Open-ILS/web/images/format_icons/mattype/f.png
+index dcfd893..87a4f30 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/f.png and b/Open-ILS/web/images/format_icons/mattype/f.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/h.png b/Open-ILS/web/images/format_icons/mattype/h.png
+index 8afcef9..0b35d0d 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/h.png and b/Open-ILS/web/images/format_icons/mattype/h.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/i.png b/Open-ILS/web/images/format_icons/mattype/i.png
+index f36fe75..aeb15e3 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/i.png and b/Open-ILS/web/images/format_icons/mattype/i.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/j.png b/Open-ILS/web/images/format_icons/mattype/j.png
+index 84cc188..de08463 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/j.png and b/Open-ILS/web/images/format_icons/mattype/j.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/k.png b/Open-ILS/web/images/format_icons/mattype/k.png
+index 96a9f35..516568a 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/k.png and b/Open-ILS/web/images/format_icons/mattype/k.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/l.png b/Open-ILS/web/images/format_icons/mattype/l.png
+index 4ba36f1..8ec9f07 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/l.png and b/Open-ILS/web/images/format_icons/mattype/l.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/m.png b/Open-ILS/web/images/format_icons/mattype/m.png
+index 95e6652..cb9f567 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/m.png and b/Open-ILS/web/images/format_icons/mattype/m.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_downloadableebook.png b/Open-ILS/web/images/format_icons/mattype/media_downloadableebook.png
+index 82f66ba..2a689b4 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_downloadableebook.png and b/Open-ILS/web/images/format_icons/mattype/media_downloadableebook.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_electronicgames.png b/Open-ILS/web/images/format_icons/mattype/media_electronicgames.png
+index b696a7a..a1ae9de 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_electronicgames.png and b/Open-ILS/web/images/format_icons/mattype/media_electronicgames.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_evideo.png b/Open-ILS/web/images/format_icons/mattype/media_evideo.png
+index 09a7ea6..318ea81 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_evideo.png and b/Open-ILS/web/images/format_icons/mattype/media_evideo.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_onlinejournal.png b/Open-ILS/web/images/format_icons/mattype/media_onlinejournal.png
+index 65cac4c..9a17a67 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_onlinejournal.png and b/Open-ILS/web/images/format_icons/mattype/media_onlinejournal.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_player.png b/Open-ILS/web/images/format_icons/mattype/media_player.png
+index 64197e1..aea33bb 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_player.png and b/Open-ILS/web/images/format_icons/mattype/media_player.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_podcasts.png b/Open-ILS/web/images/format_icons/mattype/media_podcasts.png
+index d563fbb..e852203 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_podcasts.png and b/Open-ILS/web/images/format_icons/mattype/media_podcasts.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_streamingaudio.png b/Open-ILS/web/images/format_icons/mattype/media_streamingaudio.png
+index 51c31c3..b76e9cd 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_streamingaudio.png and b/Open-ILS/web/images/format_icons/mattype/media_streamingaudio.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_streamingvideo.png b/Open-ILS/web/images/format_icons/mattype/media_streamingvideo.png
+index 3fe2cbe..61d123d 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_streamingvideo.png and b/Open-ILS/web/images/format_icons/mattype/media_streamingvideo.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/media_vhs.png b/Open-ILS/web/images/format_icons/mattype/media_vhs.png
+index 11c1e42..7565621 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/media_vhs.png and b/Open-ILS/web/images/format_icons/mattype/media_vhs.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/n.png b/Open-ILS/web/images/format_icons/mattype/n.png
+index 62b1af2..8e9fe64 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/n.png and b/Open-ILS/web/images/format_icons/mattype/n.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/o.png b/Open-ILS/web/images/format_icons/mattype/o.png
+index c60d039..5d96960 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/o.png and b/Open-ILS/web/images/format_icons/mattype/o.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/p.png b/Open-ILS/web/images/format_icons/mattype/p.png
+index 009d292..38d6be5 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/p.png and b/Open-ILS/web/images/format_icons/mattype/p.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/q.png b/Open-ILS/web/images/format_icons/mattype/q.png
+index 0949630..7824020 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/q.png and b/Open-ILS/web/images/format_icons/mattype/q.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/r.png b/Open-ILS/web/images/format_icons/mattype/r.png
+index 65a2de2..ec0ae3c 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/r.png and b/Open-ILS/web/images/format_icons/mattype/r.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/s.png b/Open-ILS/web/images/format_icons/mattype/s.png
+index 94cebfb..75f5c75 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/s.png and b/Open-ILS/web/images/format_icons/mattype/s.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/t.png b/Open-ILS/web/images/format_icons/mattype/t.png
+index 437f91f..0c4e9fd 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/t.png and b/Open-ILS/web/images/format_icons/mattype/t.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/v.png b/Open-ILS/web/images/format_icons/mattype/v.png
+index 53a192e..5fc927b 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/v.png and b/Open-ILS/web/images/format_icons/mattype/v.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/w.png b/Open-ILS/web/images/format_icons/mattype/w.png
+index 1270685..e757857 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/w.png and b/Open-ILS/web/images/format_icons/mattype/w.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/x.png b/Open-ILS/web/images/format_icons/mattype/x.png
+index bcd621c..2c6993c 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/x.png and b/Open-ILS/web/images/format_icons/mattype/x.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/y.png b/Open-ILS/web/images/format_icons/mattype/y.png
+index a5db067..0bcca68 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/y.png and b/Open-ILS/web/images/format_icons/mattype/y.png differ
+diff --git a/Open-ILS/web/images/format_icons/mattype/z.png b/Open-ILS/web/images/format_icons/mattype/z.png
+index ccf1fed..aafc114 100644
+Binary files a/Open-ILS/web/images/format_icons/mattype/z.png and b/Open-ILS/web/images/format_icons/mattype/z.png differ
+diff --git a/Open-ILS/web/images/minus_sign.png b/Open-ILS/web/images/minus_sign.png
+index 0d612b1..553efcf 100644
+Binary files a/Open-ILS/web/images/minus_sign.png and b/Open-ILS/web/images/minus_sign.png differ
+diff --git a/Open-ILS/web/images/plus_sign.png b/Open-ILS/web/images/plus_sign.png
+index a17d58a..1f12d14 100644
+Binary files a/Open-ILS/web/images/plus_sign.png and b/Open-ILS/web/images/plus_sign.png differ
+diff --git a/Open-ILS/web/images/rdetail_arrow.png b/Open-ILS/web/images/rdetail_arrow.png
+index e464bf2..24b0053 100644
+Binary files a/Open-ILS/web/images/rdetail_arrow.png and b/Open-ILS/web/images/rdetail_arrow.png differ
+diff --git a/Open-ILS/web/images/rdetail_arrow_down.png b/Open-ILS/web/images/rdetail_arrow_down.png
+index 3dd6bfd..9ccadd3 100644
+Binary files a/Open-ILS/web/images/rdetail_arrow_down.png and b/Open-ILS/web/images/rdetail_arrow_down.png differ
+diff --git a/Open-ILS/web/opac/images/BRAINheader800W.jpg b/Open-ILS/web/opac/images/BRAINheader800W.jpg
+deleted file mode 100644
+index 73233ab..0000000
+Binary files a/Open-ILS/web/opac/images/BRAINheader800W.jpg and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/BRAINheader800WwithLibCat.png b/Open-ILS/web/opac/images/BRAINheader800WwithLibCat.png
+deleted file mode 100644
+index a3e2232..0000000
+Binary files a/Open-ILS/web/opac/images/BRAINheader800WwithLibCat.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/BRAINheader800WwithLogo.jpg b/Open-ILS/web/opac/images/BRAINheader800WwithLogo.jpg
+deleted file mode 100644
+index 54faef8..0000000
+Binary files a/Open-ILS/web/opac/images/BRAINheader800WwithLogo.jpg and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_left.png b/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_left.png
+deleted file mode 100644
+index 06d473d..0000000
+Binary files a/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_left.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_right.png b/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_right.png
+deleted file mode 100644
+index 5089a72..0000000
+Binary files a/Open-ILS/web/opac/images/NeedHelpChatWithUs_sm_right.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/background_RED.gif b/Open-ILS/web/opac/images/background_RED.gif
+deleted file mode 100644
+index 7a2e7c2..0000000
+Binary files a/Open-ILS/web/opac/images/background_RED.gif and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/background_YELLOW.gif b/Open-ILS/web/opac/images/background_YELLOW.gif
+deleted file mode 100644
+index 3fc0f1e..0000000
+Binary files a/Open-ILS/web/opac/images/background_YELLOW.gif and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/background_gif.png b/Open-ILS/web/opac/images/background_gif.png
+deleted file mode 100644
+index ac9591d..0000000
+Binary files a/Open-ILS/web/opac/images/background_gif.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/main_logo.jpg b/Open-ILS/web/opac/images/main_logo.jpg
+index 205d573..633b7a7 100644
+Binary files a/Open-ILS/web/opac/images/main_logo.jpg and b/Open-ILS/web/opac/images/main_logo.jpg differ
+diff --git a/Open-ILS/web/opac/images/main_logo.png b/Open-ILS/web/opac/images/main_logo.png
+index 5801d1e..3ae9b35 100644
+Binary files a/Open-ILS/web/opac/images/main_logo.png and b/Open-ILS/web/opac/images/main_logo.png differ
+diff --git a/Open-ILS/web/opac/images/page-left.png b/Open-ILS/web/opac/images/page-left.png
+deleted file mode 100644
+index 5ba20d2..0000000
+Binary files a/Open-ILS/web/opac/images/page-left.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/page-right.png b/Open-ILS/web/opac/images/page-right.png
+deleted file mode 100644
+index 9a6cc78..0000000
+Binary files a/Open-ILS/web/opac/images/page-right.png and /dev/null differ
+diff --git a/Open-ILS/web/opac/images/small_logo.jpg b/Open-ILS/web/opac/images/small_logo.jpg
+index 817121e..7e25855 100644
+Binary files a/Open-ILS/web/opac/images/small_logo.jpg and b/Open-ILS/web/opac/images/small_logo.jpg differ
+diff --git a/Open-ILS/web/opac/images/small_logo.png b/Open-ILS/web/opac/images/small_logo.png
+index 66b14e6..47ef919 100644
+Binary files a/Open-ILS/web/opac/images/small_logo.png and b/Open-ILS/web/opac/images/small_logo.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/newtab.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/newtab.png
+new file mode 100644
+index 0000000..7cea7bd
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/newtab.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_bib_search_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_bib_search_toolbar.png
+new file mode 100644
+index 0000000..0b6272b
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_bib_search_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_claim_eligible_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_claim_eligible_toolbar.png
+new file mode 100644
+index 0000000..27623d4
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_claim_eligible_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_invoice_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_invoice_toolbar.png
+new file mode 100644
+index 0000000..32aadcd
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_invoice_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_po_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_po_toolbar.png
+new file mode 100644
+index 0000000..a4876c5
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_create_po_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_new_brief_record_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_new_brief_record_toolbar.png
+new file mode 100644
+index 0000000..1fae822
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_new_brief_record_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_unified_search_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_unified_search_toolbar.png
+new file mode 100644
+index 0000000..fb5b3ca
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_unified_search_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_upload_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_upload_toolbar.png
+new file mode 100644
+index 0000000..777f4b0
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_upload_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_user_requests_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_user_requests_toolbar.png
+new file mode 100644
+index 0000000..3697b64
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_user_requests_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_view_my_pl_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_view_my_pl_toolbar.png
+new file mode 100644
+index 0000000..a4aeedb
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/acq_view_my_pl_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_capture_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_capture_toolbar.png
+new file mode 100644
+index 0000000..5893002
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_capture_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_pull_list_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_pull_list_toolbar.png
+new file mode 100644
+index 0000000..a1edf05
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_pull_list_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_pickup_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_pickup_toolbar.png
+new file mode 100644
+index 0000000..124954d
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_pickup_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_return_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_return_toolbar.png
+new file mode 100644
+index 0000000..f337fb0
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_return_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_toolbar.png
+new file mode 100644
+index 0000000..38cd53f
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/booking_reservation_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/browse_holds_shelf_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/browse_holds_shelf_toolbar.png
+new file mode 100644
+index 0000000..7b5ae3c
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/browse_holds_shelf_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_hold_pull_list_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_hold_pull_list_toolbar.png
+new file mode 100644
+index 0000000..36520cb
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_hold_pull_list_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_renew_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_renew_toolbar.png
+new file mode 100644
+index 0000000..3c191bc
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/circ_renew_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_copy_buckets_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_copy_buckets_toolbar.png
+new file mode 100644
+index 0000000..565d785
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_copy_buckets_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_record_buckets_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_record_buckets_toolbar.png
+new file mode 100644
+index 0000000..da1f16c
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/edit_record_buckets_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/portal_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/portal_toolbar.png
+new file mode 100644
+index 0000000..d87b8be
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/portal_toolbar.png differ
+diff --git a/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/retrieve_last_patron_toolbar.png b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/retrieve_last_patron_toolbar.png
+new file mode 100644
+index 0000000..40b66ae
+Binary files /dev/null and b/Open-ILS/xul/staff_client/chrome/skin/media/images/toolbar_blue/retrieve_last_patron_toolbar.png differ
+

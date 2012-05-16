@@ -293,7 +293,7 @@ sub create_hold {
 			or return $e->die_event;
         if ( $t eq OILS_HOLD_TYPE_FORCE ) {
             return $e->die_event unless $e->allowed('COPY_HOLDS_FORCE',   $copy->circ_lib);
-    } elsif ( $t eq OILS_HOLD_TYPE_RECALL ) {
+        } elsif ( $t eq OILS_HOLD_TYPE_RECALL ) {
             return $e->die_event unless $e->allowed('COPY_HOLDS_RECALL',   $copy->circ_lib);
         }
     }
@@ -883,11 +883,23 @@ sub batch_update_hold {
 sub update_hold_impl {
     my($self, $e, $hold, $values) = @_;
     my $hold_status;
+    my $need_retarget = 0;
 
     unless($hold) {
         $hold = $e->retrieve_action_hold_request($values->{id})
             or return $e->die_event;
         for my $k (keys %$values) {
+            # Outside of pickup_lib (covered by the first regex) I don't know when these would currently change.
+            # But hey, why not cover things that may happen later?
+            if ($k =~ '_(lib|ou)$' || $k eq 'target' || $k eq 'hold_type' || $k eq 'requestor' || $k eq 'selection_depth' || $k eq 'holdable_formats') {
+                if (defined $values->{$k} && defined $hold->$k() && $values->{$k} ne $hold->$k()) {
+                    # Value changed? RETARGET!
+                    $need_retarget = 1;
+                } elsif (defined $hold->$k() != defined $values->{$k}) {
+                    # Value being set or cleared? RETARGET!
+                    $need_retarget = 1;
+                }
+            }
             if (defined $values->{$k}) {
                 $hold->$k($values->{$k});
             } else {
@@ -935,7 +947,7 @@ sub update_hold_impl {
     # --------------------------------------------------------------
     if ($U->is_true($hold->frozen) and not $U->is_true($orig_hold->frozen)) {
         $hold_status = _hold_status($e, $hold);
-        if ($hold_status > 2) { # hold is captured
+        if ($hold_status > 2 && $hold_status != 7) { # hold is captured
             $logger->info("bypassing hold freeze on captured hold");
             return OpenILS::Event->new('HOLD_SUSPEND_AFTER_CAPTURE');
         }
@@ -966,7 +978,7 @@ sub update_hold_impl {
             $transit->dest($hold->pickup_lib);
             $e->update_action_hold_transit_copy($transit) or return $e->die_event;
 
-        } elsif($hold_status == 4 or $hold_status == 8) { # on holds shelf
+        } elsif($hold_status == 4 or $hold_status == 5 or $hold_status == 8) { # on holds shelf
 
             return $e->die_event unless $e->allowed('UPDATE_PICKUP_LIB_FROM_HOLDS_SHELF', $orig_hold->pickup_lib);
             return $e->die_event unless $e->allowed('UPDATE_PICKUP_LIB_FROM_HOLDS_SHELF', $hold->pickup_lib);
@@ -981,9 +993,9 @@ sub update_hold_impl {
 
             } else {
                 # clear to prevent premature shelf expiration
-            $hold->clear_shelf_expire_time;
+                $hold->clear_shelf_expire_time;
+            }
         }
-    } 
     } 
 
     update_hold_if_frozen($self, $e, $hold, $orig_hold);
@@ -993,6 +1005,9 @@ sub update_hold_impl {
     # a change to mint-condition changes the set of potential copies, so retarget the hold;
     if($U->is_true($hold->mint_condition) and !$U->is_true($orig_hold->mint_condition)) {
         _reset_hold($self, $e->requestor, $hold) 
+    } elsif($need_retarget && !defined $hold->capture_time()) { # If needed, retarget the hold due to changes
+        $U->storagereq(
+    		'open-ils.storage.action.hold_request.copy_targeter', undef, $hold->id );
     }
 
     return $hold->id;
@@ -1177,7 +1192,7 @@ sub _hold_status {
     if ($hold->cancel_time) {
         return 6;
     }
-    if ($U->is_true($hold->frozen)) {
+    if ($U->is_true($hold->frozen) && !$hold->capture_time) {
         return 7;
     }
     if ($hold->current_shelf_lib and $hold->current_shelf_lib ne $hold->pickup_lib) {
@@ -2016,7 +2031,7 @@ sub fetch_captured_holds {
                 current_copy     => $current_copy,
                 fulfillment_time => undef,
                 current_shelf_lib => $org
-              }
+            }
         }
     };
     if($self->api_name =~ /expired/) {
@@ -2254,6 +2269,9 @@ sub check_title_hold {
         @status = do_possibility_checks($e, $patron, $request_lib, $params{depth}, %params);
     }
 
+    my $place_unfillable = 0;
+    $place_unfillable = 1 if $e->allowed('PLACE_UNFILLABLE_HOLD', $e->requestor->ws_ou);
+
     if ($status[0]) {
         return {
             "success" => 1,
@@ -2262,9 +2280,9 @@ sub check_title_hold {
         };
     } elsif ($status[2]) {
         my $n = scalar @{$status[2]};
-        return {"success" => 0, "last_event" => $status[2]->[$n - 1], "age_protected_copy" => $status[3]};
+        return {"success" => 0, "last_event" => $status[2]->[$n - 1], "age_protected_copy" => $status[3], "place_unfillable" => $place_unfillable};
     } else {
-        return {"success" => 0, "age_protected_copy" => $status[3]};
+        return {"success" => 0, "age_protected_copy" => $status[3], "place_unfillable" => $place_unfillable};
     }
 }
 
@@ -2886,15 +2904,17 @@ sub find_nearest_permitted_hold {
 	# search for what should be the best holds for this copy to fulfill
 	my $best_holds = $U->storagereq(
         "open-ils.storage.action.hold_request.nearest_hold.atomic", 
-		$user->ws_ou, $copy->id, 10, $hold_stall_interval, $fifo );
+		$user->ws_ou, $copy->id, 100, $hold_stall_interval, $fifo );
+
+	# Add any pre-targeted holds to the list too? Unless they are already there, anyway.
+	if ($old_holds) {
+		for my $holdid (@$old_holds) {
+			next unless $holdid;
+			push(@$best_holds, $holdid) unless ( grep { ''.$holdid eq ''.$_ } @$best_holds );
+		}
+	}
 
 	unless(@$best_holds) {
-
-		if( my $hold = $$old_holds[0] ) {
-			$logger->info("circulator: using existing pre-targeted hold ".$hold->id." in hold search");
-			return ($hold);
-		}
-
 		$logger->info("circulator: no suitable holds found for copy $bc");
 		return (undef, $evt);
 	}
@@ -2936,11 +2956,6 @@ sub find_nearest_permitted_hold {
 
 
 	unless( $best_hold ) { # no "good" permitted holds were found
-		if( my $hold = $$old_holds[0] ) { # can we return a pre-targeted hold?
-			$logger->info("circulator: using existing pre-targeted hold ".$hold->id." in hold search");
-			return ($hold);
-		}
-
 		# we got nuthin
 		$logger->info("circulator: no suitable holds found for copy $bc");
 		return (undef, $evt);
@@ -3537,7 +3552,7 @@ sub hold_has_copy_at {
                 ccs  => {field => 'id', filter => { holdable => 't'}, fkey => 'status'  }
             }
         },
-        where => {'+acp' => { circulate => 't', deleted => 'f', holdable => 't', circ_lib => $org_unit}},
+        where => {'+acp' => { circulate => 't', deleted => 'f', holdable => 't', circ_lib => $org_unit, status => [0,7]}},
         limit => 1
     };
 
@@ -3548,7 +3563,23 @@ sub hold_has_copy_at {
     } elsif($hold_type eq 'V') {
 
         $query->{where}->{'+acp'}->{call_number} = $hold_target;
-    
+
+    } elsif($hold_type eq 'P') {
+
+        $query->{from}->{acp}->{acpm} = {
+            field  => 'target_copy',
+            fkey   => 'id',
+            filter => {part => $hold_target},
+        };
+
+    } elsif($hold_type eq 'I') {
+
+        $query->{from}->{acp}->{sitem} = {
+            field  => 'unit',
+            fkey   => 'id',
+            filter => {issuance => $hold_target},
+        };
+
     } elsif($hold_type eq 'T') {
 
         $query->{from}->{acp}->{acn} = {

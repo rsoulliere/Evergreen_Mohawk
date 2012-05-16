@@ -14,7 +14,7 @@ util.print = function (context) {
     this.set_context(context, true);
 
     try {
-    var prefs = Components.classes['@mozilla.org/preferences-service;1'].getService(Components.interfaces['nsIPrefBranch']);
+        var prefs = Components.classes['@mozilla.org/preferences-service;1'].getService(Components.interfaces['nsIPrefBranch']);
 
         if (prefs.prefHasUserValue('print.always_print_silent')) {
             if (! prefs.getBoolPref('print.always_print_silent')) {

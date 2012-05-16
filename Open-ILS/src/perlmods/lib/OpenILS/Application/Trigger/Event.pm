@@ -95,7 +95,7 @@ sub init {
     }
 
     unless ($self->nochanges) {
-    $self->update_state('found') || die 'Unable to update event state';
+        $self->update_state('found') || die 'Unable to update event state';
     }
 
     my $class = $self->_fm_class_by_hint( $self->event->event_def->hook->core_type );

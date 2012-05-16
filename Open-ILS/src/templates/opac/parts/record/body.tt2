@@ -3,7 +3,7 @@
     PROCESS get_marc_attrs args=attrs;
     stop_parms = ['expand','cnoffset'];
 %]
-<div id='canvas_main' class='canvas'>
+<div id='canvas_main' class='canvas' itemscope itemtype='[% args.schema.itemtype %]'>
 
     [% IF ctx.search_result_index >= 0 %]
     <div id="rdetail_header">
@@ -13,11 +13,13 @@
                 [% l('Showing Item [_1] of [_2]', ctx.search_result_index + 1, ctx.hit_count) %]
             </span>
         </span>
+        [%- INCLUDE "opac/parts/pref_lib_display.tt2" %]
         <div id="rdetail_result_nav">
             [%
                 IF ctx.prev_search_record;
                     prev_args = {};
-                    IF ctx.search_result_index % (ctx.page_size + 1) == 0; # first record in the page
+                    IF ctx.search_page > 0 AND 
+                            ctx.search_result_index % ((ctx.page_size * ctx.search_page)) == 0; # first record in the page
                         prev_args.page = ctx.search_page - 1;
                     END;
                     ctx.prev_rec_url = mkurl(ctx.prev_search_record, prev_args, stop_parms);
@@ -29,7 +31,7 @@
             [% 
                 IF ctx.next_search_record;
                     next_args = {};
-                    IF ctx.page_size == ctx.search_result_index + 1;
+                    IF (ctx.page_size * (ctx.search_page + 1)) == ctx.search_result_index + 1;
                         next_args.page = ctx.search_page + 1;
                     END;
                     ctx.next_rec_url = mkurl(ctx.next_search_record, next_args, stop_parms);
@@ -39,13 +41,12 @@
             [% END %]
 
         </div>
-        <div class="clear-both"></div>
     </div>
     [% END %]
-
-    <div style='font-weight: bold; padding: 5px; margin: 5px; width: 100%;'
-        class='hide_me color_4' id='rdetail_deleted_exp'>
+    [%- IF ctx.bib_is_dead %]
+    <div id='rdetail_deleted_exp'>
         [% l("This record has been deleted from the database.  We recommend that you remove this title from any bookbags it may have been added to.") %]
     </div>
+    [%- END %]
     [% INCLUDE "opac/parts/record/summary.tt2" %]
 </div>

@@ -19,6 +19,11 @@
 	<event code='3' textcode='NO_CHANGE'>
 		<desc xml:lang="en-US">No change occurred</desc>
 	</event>
+
+    <event code='4' textcode='CACHE_MISS'>
+        <desc xml:lang="en-US">A cached object could not be retrieved by the given reference.</desc>
+    </event>
+
 	<event code='1000' textcode='LOGIN_FAILED'>
 		<desc xml:lang="en-US">User login failed</desc>
 	</event>
@@ -473,8 +478,9 @@
 	<event code='1610' textcode='MONEY_CHECK_PAYMENT_NOT_FOUND'>
 		<desc xml:lang='en-US'>The requested money_check_payment was not found</desc>
 	</event>
-
-
+	<event code='1611' textcode='ACTOR_STAT_CAT_ENTRY_DEFAULT_NOT_FOUND'>
+		<desc xml:lang='en-US'>The requested actor_stat_cat_entry_default was not found</desc>
+	</event>
 	<event code='1612' textcode='CONFIG_RULES_MAX_FINE_NOT_FOUND'>
 		<desc xml:lang='en-US'>The requested config_rules_max_fine was not found</desc>
 	</event>
@@ -994,6 +1000,11 @@
 
     <event code='11103' textcode='TRANSIT_CHECKIN_INTERVAL_BLOCK'>
         <desc xml:lang="en-US">Checkin attempted on item during minimum transit checkin interval.</desc>
+    </event>
+
+    <event code='11104' textcode='SERIAL_CORRUPT_PATTERN_CODE'>
+        <desc xml:lang="en-US">A serial pattern code has been configured
+        that fails to conform to MFHD standards for fields 853-855.</desc>
     </event>
 
 	<!-- ================================================================ -->

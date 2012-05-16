@@ -105,6 +105,8 @@ CREATE TABLE serial.distribution (
 	                              REFERENCES actor.org_unit (id)
 								  DEFERRABLE INITIALLY DEFERRED,
 	label                 TEXT    NOT NULL,
+	display_grouping      TEXT    NOT NULL DEFAULT 'chron'
+	                              CHECK (display_grouping IN ('enum', 'chron')),
 	receive_call_number   BIGINT  REFERENCES asset.call_number (id)
 	                              DEFERRABLE INITIALLY DEFERRED,
 	receive_unit_template INT     REFERENCES asset.copy_template (id)
@@ -200,6 +202,7 @@ CREATE TABLE serial.issuance (
 	holding_link_id INT -- probably defunct
 	-- TODO: add columns for separate enumeration/chronology values
 );
+ALTER TABLE serial.issuance ADD CHECK (holding_code IS NULL OR evergreen.is_json(holding_code));
 CREATE INDEX serial_issuance_sub_idx ON serial.issuance (subscription);
 CREATE INDEX serial_issuance_caption_and_pattern_idx ON serial.issuance (caption_and_pattern);
 CREATE INDEX serial_issuance_date_published_idx ON serial.issuance (date_published);
@@ -326,5 +329,91 @@ CREATE TABLE serial.index_summary (
 );
 CREATE INDEX serial_index_summary_dist_idx ON serial.index_summary (distribution);
 
+CREATE VIEW serial.any_summary AS
+    SELECT
+        'basic' AS summary_type, id, distribution,
+        generated_coverage, textual_holdings, show_generated
+    FROM serial.basic_summary
+    UNION
+    SELECT
+        'index' AS summary_type, id, distribution,
+        generated_coverage, textual_holdings, show_generated
+    FROM serial.index_summary
+    UNION
+    SELECT
+        'supplement' AS summary_type, id, distribution,
+        generated_coverage, textual_holdings, show_generated
+    FROM serial.supplement_summary ;
+
+
+CREATE TABLE serial.materialized_holding_code (
+    id BIGSERIAL PRIMARY KEY,
+    issuance INTEGER NOT NULL REFERENCES serial.issuance (id) ON DELETE CASCADE,
+    subfield CHAR,
+    value TEXT
+);
+
+CREATE OR REPLACE FUNCTION serial.materialize_holding_code() RETURNS TRIGGER
+AS $func$ 
+use strict;
+
+use MARC::Field;
+use JSON::XS;
+
+if (not defined $_TD->{new}{holding_code}) {
+    elog(WARNING, 'NULL in "holding_code" column of serial.issuance allowed for now, but may not be useful');
+    return;
+}
+
+# Do nothing if holding_code has not changed...
+
+if ($_TD->{new}{holding_code} eq $_TD->{old}{holding_code}) {
+    # ... unless the following internal flag is set.
+
+    my $flag_rv = spi_exec_query(q{
+        SELECT * FROM config.internal_flag
+        WHERE name = 'serial.rematerialize_on_same_holding_code' AND enabled
+    }, 1);
+    return unless $flag_rv->{processed};
+}
+
+
+my $holding_code = (new JSON::XS)->decode($_TD->{new}{holding_code});
+
+my $field = new MARC::Field('999', @$holding_code); # tag doesnt matter
+
+my $dstmt = spi_prepare(
+    'DELETE FROM serial.materialized_holding_code WHERE issuance = $1',
+    'INT'
+);
+spi_exec_prepared($dstmt, $_TD->{new}{id});
+
+my $istmt = spi_prepare(
+    q{
+        INSERT INTO serial.materialized_holding_code (
+            issuance, subfield, value
+        ) VALUES ($1, $2, $3)
+    }, qw{INT CHAR TEXT}
+);
+
+foreach ($field->subfields) {
+    spi_exec_prepared(
+        $istmt,
+        $_TD->{new}{id},
+        $_->[0],
+        $_->[1]
+    );
+}
+
+return;
+
+$func$ LANGUAGE 'plperlu';
+
+CREATE INDEX assist_holdings_display
+    ON serial.materialized_holding_code (issuance, subfield);
+
+CREATE TRIGGER materialize_holding_code
+    AFTER INSERT OR UPDATE ON serial.issuance
+    FOR EACH ROW EXECUTE PROCEDURE serial.materialize_holding_code() ;
 COMMIT;
 

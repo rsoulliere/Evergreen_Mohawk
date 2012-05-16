@@ -13,6 +13,39 @@ G.evt.common.init.push(searchBarInit);
 var newSearchLocation; 
 var newSearchDepth = null;
 
+function autoSuggestInit() {
+    var org_unit_getter = null;
+    var global_flag = fieldmapper.standardRequest(
+        ["open-ils.fielder", "open-ils.fielder.cgf.atomic"], [{
+            "query": {"name": "opac.use_autosuggest"},
+            "fields": ["enabled", "value"]
+        }]
+    ).shift();  /* XXX do we want to use caching here? a cookie? */
+
+    if (!global_flag || !isTrue(global_flag.enabled))
+        return;
+    else if (global_flag.value && global_flag.value.match(/opac_visible/))
+        org_unit_getter = depthSelGetNewLoc;
+
+    dojo.require("openils.widget.AutoSuggest");
+
+    /* See comments in openils.AutoSuggestStore, esp. near the constructor,
+     * to find out what you can control with the store_args object. */
+    var widg = new openils.widget.AutoSuggest(
+        {
+            "store_args": {
+                "org_unit_getter": org_unit_getter
+            },
+            "type_selector": G.ui.searchbar.type_selector,
+            "submitter": searchBarSubmit,
+            "style": {"width": dojo.style("search_box", "width")},
+            "value": ((getTerm() != null) ? getTerm() : "")
+        }, "search_box"
+    );
+
+    G.ui.searchbar.text = widg.textbox;
+    setTimeout(function() { widg.focus(); }, 1000);/* raise chance of success */
+}
 
 function searchBarInit() {
 
@@ -33,7 +66,7 @@ function searchBarInit() {
 	G.ui.searchbar.text.value = (getTerm() != null) ? getTerm() : "";
 	if (!isFrontPage) G.ui.searchbar.facets.value = (getFacet() != null) ? getFacet() : "";
 	setSelector(_ts,	getStype());
-	setSelector(_fs,	getForm());
+	setSelector(_fs,	getItemType());
 
 	depthSelInit();
 
@@ -47,6 +80,8 @@ function searchBarInit() {
         if(getSort() && getSortDir()) 
             setSelector($('opac.result.sort'), getSort()+'.'+getSortDir());
     }
+
+    autoSuggestInit();
 }
 
 function searchBarSubmit(isFilterSort) {
@@ -54,7 +89,9 @@ function searchBarSubmit(isFilterSort) {
 	var text = G.ui.searchbar.text.value;
 	var facet_text = isFrontPage ? '' : G.ui.searchbar.facets.value;
 
-	clearSearchParams();
+    if (!isFilterSort) {	
+        clearSearchParams();
+    }
 
 	if(!text || text == "") return;
 

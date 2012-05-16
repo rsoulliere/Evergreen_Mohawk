@@ -57,7 +57,7 @@ cat.copy_buckets.prototype = {
                         row.my.acn = blob.volume;
                         row.my.ahr = blob.hold;
                         row.my.circ = blob.circ;
-                        params.row_node.setAttribute('retrieve_id', js2JSON( [ blob.copy.id(), blob.copy.barcode(), row.my.bucket_item_id ] ));
+                        params.treeitem_node.setAttribute('retrieve_id', js2JSON( [ blob.copy.id(), blob.copy.barcode(), row.my.bucket_item_id ] ));
                         if (typeof params.on_retrieve == 'function') { params.on_retrieve(row); }
 
                     } catch(E) {
@@ -501,7 +501,7 @@ cat.copy_buckets.prototype = {
                                 if (typeof robj.ilsevent != 'undefined') {
                                     switch(Number(robj.ilsevent)) {
                                         case 1208 /* TITLE_LAST_COPY */ :
-                                        case 1227 /* COPY_DELETE_WARNING */ : 
+                                        case 1227 /* COPY_DELETE_WARNING */ :
                                         case 5000 /* PERM_DENIED */ :
                                             // ignore this
                                         break;

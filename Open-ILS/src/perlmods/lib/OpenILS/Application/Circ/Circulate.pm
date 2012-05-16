@@ -539,6 +539,7 @@ my @AUTOLOAD_FIELDS = qw/
     retarget_mode
     hold_as_transit
     fake_hold_dest
+    limit_groups
 /;
 
 
@@ -1188,6 +1189,8 @@ sub run_indb_circ_test {
         }
         $self->circ_matrix_matchpoint->max_fine_rule($self->editor->retrieve_config_rules_max_fine($results->[0]->{max_fine_rule}));
         $self->circ_matrix_matchpoint->hard_due_date($self->editor->retrieve_config_hard_due_date($results->[0]->{hard_due_date}));
+        # Grab the *last* response for limit_groups, where it is more likely to be filled
+        $self->limit_groups($results->[-1]->{limit_groups});
     }
 
     return $self->matrix_test_result($results);
@@ -1486,6 +1489,10 @@ sub do_checkout {
 
     # refresh the circ to force local time zone for now
     $self->circ($self->editor->retrieve_action_circulation($self->circ->id));
+
+    if($self->limit_groups) {
+        $self->editor->json_query({ from => ['action.link_circ_limit_groups', $self->circ->id, $self->limit_groups] });
+    }
 
     $self->copy->status(OILS_COPY_STATUS_CHECKED_OUT);
     $self->update_copy;
@@ -2358,7 +2365,7 @@ sub checkin_retarget {
     # Check for parts on this copy
     my $parts = $self->editor->search_asset_copy_part_map({ target_copy => $self->copy->id });
     my %parts_hash = ();
-    %parts_hash = map {$_->id, 1} @$parts if @$parts;
+    %parts_hash = map {$_->part, 1} @$parts if @$parts;
 
     # Loop over holds in request-ish order
     # Stage 1: Get them into request-ish order
@@ -2810,7 +2817,7 @@ sub checkin_build_copy_transit {
     my $self            = shift;
     my $dest            = shift;
     my $copy       = $self->copy;
-   my $transit    = Fieldmapper::action::transit_copy->new;
+    my $transit    = Fieldmapper::action::transit_copy->new;
 
     # if we are transiting an item to the shelf shelf, it's a hold transit
     if (my $hold = $self->remote_hold) {
@@ -2829,11 +2836,11 @@ sub checkin_build_copy_transit {
     #$dest  ||= (ref($copy->circ_lib)) ? $copy->circ_lib->id : $copy->circ_lib;
     $logger->info("circulator: transiting copy to $dest");
 
-   $transit->source($self->circ_lib);
-   $transit->dest($dest);
-   $transit->target_copy($copy->id);
-   $transit->source_send_time('now');
-   $transit->copy_status( $U->copy_status($copy->status)->id );
+    $transit->source($self->circ_lib);
+    $transit->dest($dest);
+    $transit->target_copy($copy->id);
+    $transit->source_send_time('now');
+    $transit->copy_status( $U->copy_status($copy->status)->id );
 
     $logger->debug("circulator: setting copy status on transit: ".$transit->copy_status);
 
@@ -2841,11 +2848,11 @@ sub checkin_build_copy_transit {
         return $self->bail_on_events($self->editor->event)
             unless $self->editor->create_action_hold_transit_copy($transit);
     } else {
-    return $self->bail_on_events($self->editor->event)
-        unless $self->editor->create_action_transit_copy($transit);
+        return $self->bail_on_events($self->editor->event)
+            unless $self->editor->create_action_transit_copy($transit);
     }
 
-   $copy->status(OILS_COPY_STATUS_IN_TRANSIT);
+    $copy->status(OILS_COPY_STATUS_IN_TRANSIT);
     $self->update_copy;
     $self->checkin_changed(1);
 }
@@ -2966,12 +2973,12 @@ sub attempt_checkin_hold_capture {
             $self->bail_on_events($self->editor->event)
                 unless $self->editor->update_action_hold_request($hold);
         } else {
-        # This hold was captured in the correct location
-        $copy->status(OILS_COPY_STATUS_ON_HOLDS_SHELF);
-        $self->push_events(OpenILS::Event->new('SUCCESS'));
+            # This hold was captured in the correct location
+            $copy->status(OILS_COPY_STATUS_ON_HOLDS_SHELF);
+            $self->push_events(OpenILS::Event->new('SUCCESS'));
 
-        #$self->do_hold_notify($hold->id);
-        $self->notify_hold($hold->id);
+            #$self->do_hold_notify($hold->id);
+            $self->notify_hold($hold->id);
         }
 
     } else {

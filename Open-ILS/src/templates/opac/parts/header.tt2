@@ -4,6 +4,7 @@
     USE POSIX;
     USE HTML;
     SET DATE_FORMAT = l('%m/%d/%Y');
+    PROCESS "opac/parts/config.tt2";
 
     # Don't wrap in l() here; do that where this format string is actually used.
     SET HUMAN_NAME_FORMAT = '[_1] [_2] [_3] [_4] [_5]';
@@ -25,7 +26,10 @@
     #
     # Current page, clear 'some_param' from the existing params:
     # mkurl('', {foo => 'bar', boo => 'baz'}, ['some_param']);
-    MACRO mkurl(page, params, clear_params) BLOCK;
+    #
+    # Current page to a named anchor 'copies'
+    # mkurl('', {}, [], 'copies');
+    MACRO mkurl(page, params, clear_params, named_anchor) BLOCK;
 
         # clone the query string to avoid clobberation
         cgi = CGI.new(CGI.query_string);
@@ -45,7 +49,12 @@
         FOR k IN params.keys;
             encoded = [];
             max = params.$k.max;
-            list = (params.$k.0 OR max == -1) ? params.$k : [params.$k];
+
+            # The following commented-out line can be fooled. Its replacement
+            # below is what you really mean.
+            # list = (params.$k.0 OR max == -1) ? params.$k : [params.$k];
+            list = params.$k.list;
+
             IF list.size == 0; NEXT; END;
             # CGI croaks on already-decoded strings.  force-encode to be safe.
             FOR p IN list; encoded.push(ctx.encode_utf8(p)); END;
@@ -56,17 +65,35 @@
         FOR p IN cgi.param;
             val = cgi.param(p);
             IF val == ''; cgi.delete(p); END;
+
+            # Delete POST vars unless we asked for them
+            UNLESS CGI.url_param(p).defined OR params.defined(p);
+                cgi.delete(p);
+            END;
         END;
+
+        final = named_anchor ? '#' _ named_anchor : '';
 
         IF page;
             IF cgi.query_string;
-                page _ '?' _ cgi.query_string;
+                page _ '?' _ cgi.query_string _ final;
             ELSE;
-                page;
+                page _ final;
             END;
         ELSE;
             # staying on the current page
-            cgi.url("-path" => 1, "-query" => 1);
+            cgi.url("-path" => 1, "-query" => 1) _ final;
         END;
+    END;
+
+    # Whether we want Dojo or not may one day be a wholly distinct
+    # concern from whether we want autosuggest, so let's get used to
+    # defining that separately.
+    want_dojo = 0;
+
+    use_autosuggest = ctx.get_cgf("opac.use_autosuggest");
+
+    IF use_autosuggest.enabled == "t";
+        want_dojo = 1;
     END;
 %]

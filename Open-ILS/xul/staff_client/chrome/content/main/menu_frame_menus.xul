@@ -149,8 +149,12 @@
     <command id="cmd_local_admin_patrons_due_refunds" />
     <command id="cmd_local_admin_copy_template" />
     <command id="cmd_local_admin_address_alert"
-             perm="ADMIN_ADDRESS_ALERT VIEW_ADDRESS_ALERT"
+             perm="ADMIN_ADDRESS_ALERT VIEW_ADDRESS_ALERT" />
+    <command id="cmd_local_admin_circ_limit_set"
+             perm="ADMIN_CIRC_MATRIX_MATCHPOINT VIEW_CIRC_MATRIX_MATCHPOINT"
              />
+    <command id="cmd_local_admin_copy_location_group"
+             perm="ADMIN_COPY_LOCATION_GROUP VIEW_COPY_LOCATION_GROUP" />
 
     <!-- server admin menu commands -->
     <command id="cmd_server_admin_org_type"
@@ -194,6 +198,9 @@
     <command id="cmd_server_admin_z39_source" />
     <command id="cmd_server_admin_circ_mod" 
              perm="CREATE_CIRC_MOD DELETE_CIRC_MOD UPDATE_CIRC_MOD ADMIN_CIRC_MOD"
+             />
+    <command id="cmd_server_admin_circ_limit_group"
+             perm="ADMIN_CIRC_MATRIX_MATCHPOINT VIEW_CIRC_MATRIX_MATCHPOINT"
              />
     <command id="cmd_server_admin_global_flag"
              perm="ADMIN_GLOBAL_FLAG"
@@ -241,11 +248,18 @@
     <command id="cmd_server_admin_config_asset_sip_fields"
              perm="CREATE_COPY_STAT_CAT"
              />
+    <command id="cmd_server_admin_config_usr_activity_type"
+             perm="ADMIN_USER_ACTIVITY_TYPE VIEW_USER_ACTIVITY_TYPE"
+             />
+    <command id="cmd_server_admin_actor_org_unit_custom_tree"
+             perm="ADMIN_ORG_UNIT_CUSTOM_TREE VIEW_ORG_UNIT_CUSTOM_TREE"
+             />
 
     <command id="cmd_hotkeys_toggle" />
     <command id="cmd_hotkeys_set" />
     <command id="cmd_hotkeys_setworkstation" />
     <command id="cmd_hotkeys_clearworkstation" />
+    <command id="cmd_toolbar_configure" />
     <command id="cmd_toolbar_set" />
     <command id="cmd_toolbar_setworkstation" />
     <command id="cmd_toolbar_clearworkstation" />
@@ -419,7 +433,7 @@
 <menu id="main.menu.admin" label="&staff.main.menu.admin.label;" accesskey="&staff.main.menu.admin.accesskey;">
     <menupopup id="main.menu.admin.popup">
         <menuitem id="oc_menuitem" label="&staff.main.menu.admin.change_session.label;" label_orig="&staff.main.menu.admin.change_session.label;" 
-            accesskey="O" command="cmd_change_session"/>
+            accesskey="O" command="cmd_change_session" forceFirst="true"/>
         <menuitem label="&staff.main.menu.admin.offline_xacts.label;" accesskey="&staff.main.menu.admin.offline_xacts.accesskey;" command="cmd_manage_offline_xacts"/>
         <menuitem label="&staff.main.menu.admin.download_patrons.label;" accesskey="&staff.main.menu.admin.download_patrons.accesskey;" command="cmd_download_patrons"/>
         <menuseparator />
@@ -447,9 +461,6 @@
                     <menupopup id="main.menu.admin.client.toolbars.popup">
                         <menu id="main.menu.admin.client.toolbars.current" label="&staff.main.menu.admin.client.toolbars.current;">
                             <menupopup id="main.menu.admin.client.toolbars.current.popup">
-                                <menuitem name="current_toolbar" type="radio" label="&staff.main.button_bar.none;" value="none" command="cmd_toolbar_set" checked="true"/>
-                                <menuitem name="current_toolbar" type="radio" label="&staff.main.button_bar.circ;" value="circ" command="cmd_toolbar_set"/>
-                                <menuitem name="current_toolbar" type="radio" label="&staff.main.button_bar.cat;" value="cat" command="cmd_toolbar_set"/>
                             </menupopup>
                         </menu>
                         <menu id="main.menu.admin.client.toolbars.mode" label="&staff.main.menu.admin.client.toolbars.mode;">
@@ -472,6 +483,8 @@
                             </menupopup>
                         </menu>
                         <menuseparator />
+                        <menuitem label="&staff.main.menu.admin.client.toolbars.config.label;" accesskey="&staff.main.menu.admin.client.toolbars.config.accesskey;" command="cmd_toolbar_configure"/>
+                        <menuseparator />
                         <menuitem label="&staff.main.menu.admin.client.toolbars.setworkstation.label;" accesskey="&staff.main.menu.admin.client.toolbars.setworkstation.accesskey;" command="cmd_toolbar_setworkstation"/>
                         <menuitem label="&staff.main.menu.admin.client.toolbars.clearworkstation.label;" accesskey="&staff.main.menu.admin.client.toolbars.clearworkstation.accesskey;" command="cmd_toolbar_clearworkstation"/>
                     </menupopup>
@@ -485,9 +498,11 @@
                 <menuitem label="&staff.server.admin.index.cash_reports;" command="cmd_local_admin_cash_reports"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.barcode_completion.label;" command="cmd_local_admin_barcode_completion"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.circ_matrix_matchpoint.label;" command="cmd_local_admin_circ_matrix_matchpoint"/>
+                <menuitem label="&staff.main.menu.admin.local_admin.circ_limit_set.label;" command="cmd_local_admin_circ_limit_set"/>
                 <menuitem label="&staff.server.admin.index.closed_dates;" command="cmd_local_admin_closed_dates"/>
                 <menuitem label="&staff.server.admin.index.copy_locations;" command="cmd_local_admin_copy_locations"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.conify.copy_location_order.label;" command="cmd_local_admin_copy_location_order"/>
+                <menuitem label="&staff.main.menu.admin.local_admin.copy_location_group.label;" command="cmd_local_admin_copy_location_group"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.copy_template.label;" accesskey="&staff.main.menu.admin.local_admin.copy_template.accesskey;" command="cmd_local_admin_copy_template"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.conify.idl_field_doc.label;" command="cmd_local_admin_idl_field_doc"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.conify.grp_penalty_threshold.label;" command="cmd_local_admin_grp_penalty_threshold"/>
@@ -522,6 +537,7 @@
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.sms_carrier.label;" command="cmd_server_admin_sms_carrier"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.z3950_source.label;" command="cmd_server_admin_z39_source"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.circulation_modifier.label;" command="cmd_server_admin_circ_mod"/>
+                <menuitem label="&staff.main.menu.admin.server_admin.conify.circulation_limit_group.label;" command="cmd_server_admin_circ_limit_group"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.global_flag.label;" command="cmd_server_admin_global_flag"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.import_match_set;" command="cmd_server_admin_import_match_set"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.org_unit_setting_type;" command="cmd_server_admin_org_unit_setting_type"/>
@@ -536,6 +552,8 @@
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.config_weight_assoc;" command="cmd_server_admin_config_weight_assoc"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.config_actor_sip_fields;" command="cmd_server_admin_config_actor_sip_fields"/>
                 <menuitem label="&staff.main.menu.admin.server_admin.conify.config_asset_sip_fields;" command="cmd_server_admin_config_asset_sip_fields"/>
+                <menuitem label="&staff.main.menu.admin.server_admin.conify.config_usr_activity_type;" command="cmd_server_admin_config_usr_activity_type"/>
+                <menuitem label="&staff.main.menu.admin.server_admin.conify.actor.org_unit_custom_tree;" command="cmd_server_admin_actor_org_unit_custom_tree"/>
                 <menu id="main.menu.admin.server.acq" label="&staff.main.menu.admin.server_admin.acq.label;" accesskey="&staff.main.menu.admin.server_admin.acq.accesskey;">
                     <menupopup id="main.menu.admin.server.acq.popup">
                         <menuitem label="&staff.main.menu.admin.server_admin.acq.fund.label;" accesskey="&staff.main.menu.admin.server_admin.acq.fund.accesskey;" command="cmd_server_admin_acq_fund" />
@@ -591,7 +609,6 @@
                 <menuitem label="&staff.main.menu.admin.stat_cat_edit.label;" accesskey="&staff.main.menu.admin.stat_cat_edit.accesskey;" command="cmd_stat_cat_edit"/>
                 <menuitem label="&staff.main.menu.admin.non_cat_type_edit.label;" accesskey="&staff.main.menu.admin.non_cat_type_edit.accesskey;" command="cmd_non_cat_type_edit"/>
                 <menuitem label="&staff.main.menu.admin.copy_location_edit.label;" accesskey="&staff.main.menu.admin.copy_location_edit.accesskey;" command="cmd_copy_location_edit"/>
-                <menuitem label="&staff.main.menu.admin.browse_holds.label;" command="cmd_browse_holds" accesskey="&staff.main.menu.admin.browse_holds.accesskey;"/>
                 <menuitem label="&staff.main.menu.admin.local_admin.label;" accesskey="&staff.main.menu.admin.local_admin.accesskey;" command="cmd_local_admin"/>
                 <menuitem label="&staff.main.menu.admin.survey_wizard.label;" accesskey="&staff.main.menu.admin.survey_wizard.accesskey;" command="cmd_survey_wizard"/>
                 <menuseparator />

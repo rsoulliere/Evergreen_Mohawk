@@ -928,7 +928,7 @@ serial.manage_dists.prototype = {
                 data.node = obj.map_tree[ 'aou_' + parent_org.id() ];
             }
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            var node = nparams.treeitem_node;
             if (params) {
                 for (var i in params) {
                     node.setAttribute(i,params[i]);
@@ -943,9 +943,11 @@ serial.manage_dists.prototype = {
             if (parent_org) {
                 if ( obj.data.hash.aou[ obj.data.list.au[0].ws_ou() ].parent_ou() == parent_org.id() ) {
                     data.node.setAttribute('open','true');
+                    obj.funcs.push( function() { obj.on_click_aou( org.id() ); } );
                 }
             } else {
                 obj.map_tree[ 'aou_' + org.id() ].setAttribute('open','true');
+                obj.funcs.push( function() { obj.on_click_aou( org.id() ); } );
             }
 
             if (sdist_tree_list) {
@@ -993,7 +995,7 @@ serial.manage_dists.prototype = {
                 'no_auto_select' : true,
             };
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            var node = nparams.treeitem_node;
             obj.map_tree[ 'sdist_' + sdist_tree.id() ] =  node;
             if (params) {
                 for (var i in params) {
@@ -1017,7 +1019,7 @@ serial.manage_dists.prototype = {
                 'no_auto_select' : true,
             };
             nparams = obj.list.append(sstr_group_node_data);
-            obj.map_tree[ 'sdist_sstr_group_' + sdist_tree.id() ] =  nparams.my_node;
+            obj.map_tree[ 'sdist_sstr_group_' + sdist_tree.id() ] =  nparams.treeitem_node;
         } catch(E) {
             dump(E+'\n');
             alert(E);
@@ -1058,7 +1060,7 @@ serial.manage_dists.prototype = {
             };
             data['row']['my'][type] = item; // TODO: future optimization: get only the IDs of these leaves, then fetch the full row in 'retrieve_row'
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            var node = nparams.treeitem_node;
             obj.map_tree[ type + '_' + sdist_tree.id() + '_' + item.id() ] =  node;
             if (label) {
                 data['row']['my']['label'] = label;

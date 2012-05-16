@@ -2,7 +2,7 @@ body {
 	margin:0;
 	font-family: Arial, Helvetica, sans-serif;
 	font-size: 12px;
-	background: #53534A;
+	background: #00593d;
 }
 
 img {
@@ -388,6 +388,7 @@ div.rdetail_show_copies {
 
 div#rdetail_actions_div {
     float: right;
+    background: white;
 }
 
 span#rdetail_copy_counts {
@@ -475,7 +476,7 @@ div.format_icon {
 
 .rdetail_extras {
 	height: 29px;
-	background: #69A088;
+	background: #417860;
 	padding-top:1px;
 	margin-bottom: 10px;
 	margin-top: 10px;
@@ -501,6 +502,7 @@ div.format_icon {
 	position: relative;
 	top: -4px;
 	left: 7px;
+	color: white;
 }
 
 #paginate-homebanner a.toc {
@@ -617,7 +619,7 @@ div.format_icon {
 	border-bottom: 1px solid black;
 }
 
-.content-wrapper-record-page { top: 0px; position: relative; }
+.content-wrapper-record-page { top: -15px; position: relative; }
 
 #main-content-home {
 	padding-left: 17px;
@@ -629,12 +631,11 @@ div.format_icon {
 }
 
 #main-content-after-bar {
-	float: left;
 	margin-left: 1em;
 	padding-left: 4px;
 }
 
-#results-side-bar { float: left; width: 174px;  height: 500px; /* XXX to height of container*/  }
+#results-side-bar { float: left; width: 174px; margin-right: 5px; background: white; }
 
 #main-content .login_boxes {
 	border: 1px solid #dedede;
@@ -959,6 +960,13 @@ div.result_place_hold {
     padding: 10px; border: 1px solid #888;
 }
 
+.payment-processing {
+    font-weight: bold; color: green;
+    font-size: 120%;
+    padding: 10px; border: 1px solid #888;
+    text-align: center;
+}
+
 #adv_search_parent {
 	margin-bottom:0px;
 }
@@ -1205,7 +1213,7 @@ a.dash-link:hover { text-decoration: underline !important; }
 }
 
 .opac-button-header {
-    background: #F58220;
+    background: #69A088;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
@@ -1218,7 +1226,7 @@ a.dash-link:hover { text-decoration: underline !important; }
 }
 
 a.opac-button:hover, .results_header_btns a:hover, #simple-detail-view-links a:hover {
-    background: #B20838;
+    background: #00593d;
     text-decoration: none;
 }
 
@@ -1368,7 +1376,7 @@ table.bookbag-specific {
 .saved-searches-header .button { float: right; width: 28px; }
 .saved-searches-header .text { float: left; padding-right: 1em; margin: 0.5ex 0;}
 .saved-searches-header {font-weight: bold; font-size: 120%; }
-.saved-searches { border-bottom: 1px solid #666; }
+.saved-searches { border-bottom: 1px solid #666; padding-right: 1em; }
 #staff-saved-search { /* wraps .saved-searches-header and .saved-searches on the record page */
     border-right: 1px solid #333;
 }
@@ -1389,3 +1397,37 @@ table.bookbag-specific {
 .result-bookbag-description { font-size: 120%; font-style: italic; }
 .result-bookbag-item-note { font-style: italic; }
 .lowhits-bookbag-name { font-weight: bold; }
+.oils_AS { font-weight: bold; color: #c00; }
+.oils_AS_match_term { text-align: left; color: #000; }
+.oils_AS_match_field {
+    font-size: 75%; padding: 0.65em 0;
+    text-align: right; color: #666;
+}
+table.result_holdings_table {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+table.result_holdings_table thead tr {
+    background: #D8D8D8;
+}
+table.result_holdings_table thead tr th {
+    font-weight: bold;
+}
+span.preflib {
+    margin: 0 2em 0 2em;
+}
+a.preflib_change {
+  vertical-align: super;
+  font-size: smaller;
+  line-height: normal;
+  text-decoration: none;
+}
+.rdetail-holding-group { margin-left: 1.5em; }
+.rdetail-holding-group span { margin-left: 1.5em; }
+.rdetail-holding-group .paging { margin-left: 1.5em; }
+#rdetail_deleted_exp {
+    font-weight: bold;
+    padding: 1em;
+    margin: 1em;
+    border: thick solid red;
+}

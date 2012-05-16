@@ -7,6 +7,8 @@ use OpenILS::Utils::Fieldmapper;
 use OpenILS::Application::AppUtils;
 use OpenILS::Event;
 use OpenSRF::Utils::JSON;
+use OpenSRF::Utils::Cache;
+use Digest::MD5 qw(md5_hex);
 use Data::Dumper;
 $Data::Dumper::Indent = 0;
 use DateTime;
@@ -33,6 +35,10 @@ sub prepare_extended_user_info {
     ]);
 
     $e->rollback if $local_xact;
+
+    # discard replaced (negative-id) addresses.
+    $self->ctx->{user}->addresses([
+        grep {$_->id > 0} @{$self->ctx->{user}->addresses} ]);
 
     return Apache2::Const::HTTP_INTERNAL_SERVER_ERROR 
         unless $self->ctx->{user};
@@ -170,11 +176,18 @@ sub load_myopac_prefs_notify {
     my $self = shift;
     my $e = $self->editor;
 
+
+    my $stat = $self->_load_user_with_prefs;
+    return $stat if $stat;
+
     my $user_prefs = $self->fetch_optin_prefs;
     $user_prefs = $self->update_optin_prefs($user_prefs)
         if $self->cgi->request_method eq 'POST';
 
-    $self->ctx->{opt_in_settings} = $user_prefs; 
+    $self->ctx->{opt_in_settings} = $user_prefs;
+
+    return Apache2::Const::OK
+        unless $self->cgi->request_method eq 'POST';
 
     my %settings;
     my $set_map = $self->ctx->{user_setting_map};
@@ -337,6 +350,7 @@ sub load_myopac_prefs_settings {
     my @user_prefs = qw/
         opac.hits_per_page
         opac.default_search_location
+        opac.default_pickup_location
     /;
 
     my $stat = $self->_load_user_with_prefs;
@@ -368,7 +382,7 @@ sub load_myopac_prefs_settings {
             $settings{$key} = undef if $$set_map{$key};
         }
     }
-    
+
     # Send the modified settings off to be saved
     $U->simplereq(
         'open-ils.actor', 
@@ -594,36 +608,24 @@ sub load_place_hold {
 
     $logger->info("Looking at hold_type: " . $ctx->{hold_type} . " and targets: @targets");
 
-    # if the staff client provides a patron barcode, fetch the patron
-    if (my $bc = $self->cgi->cookie("patron_barcode")) {
-        $ctx->{patron_recipient} = $U->simplereq(
-            "open-ils.actor", "open-ils.actor.user.fleshed.retrieve_by_barcode",
-            $self->editor->authtoken, $bc
-        ) or return Apache2::Const::HTTP_BAD_REQUEST;
-
-        $ctx->{default_pickup_lib} = $ctx->{patron_recipient}->home_ou;
-    } else {
-        $ctx->{staff_recipient} = $self->editor->retrieve_actor_user([
-            $e->requestor->id,
-            {
-                flesh => 1,
-                flesh_fields => {
-                    au => ['settings']
-                }
+    $ctx->{staff_recipient} = $self->editor->retrieve_actor_user([
+        $e->requestor->id,
+        {
+            flesh => 1,
+            flesh_fields => {
+                au => ['settings', 'card']
             }
-        ]) or return Apache2::Const::HTTP_INTERNAL_SERVER_ERROR;
-    }
+        }
+    ]) or return Apache2::Const::HTTP_INTERNAL_SERVER_ERROR;
     my $user_setting_map = {
         map { $_->name => OpenSRF::Utils::JSON->JSON2perl($_->value) }
             @{
-                $ctx->{patron_recipient}
-                ? $ctx->{patron_recipient}->settings
-                : $ctx->{staff_recipient}->settings
+                $ctx->{staff_recipient}->settings
             }
     };
     $ctx->{user_setting_map} = $user_setting_map;
 
-    my $default_notify = $$user_setting_map{'opac.hold_notify'} || '';
+    my $default_notify = (defined $$user_setting_map{'opac.hold_notify'} ? $$user_setting_map{'opac.hold_notify'} : 'email:phone');
     if ($default_notify =~ /email/) {
         $ctx->{default_email_notify} = 'checked';
     } else {
@@ -638,6 +640,11 @@ sub load_place_hold {
         $ctx->{default_sms_notify} = 'checked';
     } else {
         $ctx->{default_sms_notify} = '';
+    }
+
+    # If we have a default pickup location, grab it
+    if ($$user_setting_map{'opac.default_pickup_location'}) {
+        $ctx->{default_pickup_lib} = $$user_setting_map{'opac.default_pickup_location'};
     }
 
     my $request_lib = $e->requestor->ws_ou;
@@ -687,7 +694,7 @@ sub load_place_hold {
                 }
 
                 push(@hold_data, $data_filler->({
-                    target => $rec, 
+                    target => $rec,
                     record => $rec,
                     parts => $parts,
                     part_required => $part_required
@@ -898,20 +905,20 @@ sub attempt_hold_placement {
                             $hdata->{could_override} = 1;
                             $hdata->{age_protect} = 1;
                         } else {
-                            $hdata->{could_override} = $self->test_could_override($hdata->{hold_failed_event});
-                    }
+                            $hdata->{could_override} = $result->{place_unfillable};
+                        }
                     } elsif (ref $result eq 'ARRAY') {
                         $hdata->{hold_failed_event} = $result->[0];
 
                         if ($result->[3]) { # age_protect_only
-                        $hdata->{could_override} = 1;
-                        $hdata->{age_protect} = 1;
-                    } else {
-                    $hdata->{could_override} = $self->test_could_override($hdata->{hold_failed_event});
+                            $hdata->{could_override} = 1;
+                            $hdata->{age_protect} = 1;
+                        } else {
+                            $hdata->{could_override} = $result->[4]; # place_unfillable
+                        }
+                    }
                 }
             }
-        }
-        }
         }
 
         $bses->kill_me;
@@ -1163,24 +1170,28 @@ sub load_myopac_payments {
     return Apache2::Const::OK;
 }
 
-sub load_myopac_pay {
+# 1. caches the form parameters
+# 2. loads the credit card payment "Processing..." page
+sub load_myopac_pay_init {
     my $self = shift;
-    my $r;
+    my $cache = OpenSRF::Utils::Cache->new('global');
 
     my @payment_xacts = ($self->cgi->param('xact'), $self->cgi->param('xact_misc'));
-    $logger->info("tpac paying fines for xacts @payment_xacts");
 
-    $r = $self->prepare_fines(undef, undef, \@payment_xacts) and return $r;
-
-    # balance_owed is computed specifically from the fines we're trying
-    # to pay in this case.
-    if ($self->ctx->{fines}->{balance_owed} <= 0) {
-        $self->apache->log->info(
-            sprintf("Can't pay non-positive balance. xacts selected: (%s)",
-                join(", ", map(int, $self->cgi->param("xact"), $self->cgi->param('xact_misc'))))
+    if (!@payment_xacts) {
+        # for consistency with load_myopac_payment_form() and
+        # to preserve backwards compatibility, if no xacts are
+        # selected, assume all (applicable) transactions are wanted.
+        my $stat = $self->prepare_fines(undef, undef, [$self->cgi->param('xact'), $self->cgi->param('xact_misc')]);
+        return $stat if $stat;
+        @payment_xacts =
+            map { $_->{xact}->id } (
+                @{$self->ctx->{fines}->{circulation}}, 
+                @{$self->ctx->{fines}->{grocery}}
         );
-        return Apache2::Const::HTTP_INTERNAL_SERVER_ERROR;
     }
+
+    return $self->generic_redirect unless @payment_xacts;
 
     my $cc_args = {"where_process" => 1};
 
@@ -1190,11 +1201,71 @@ sub load_myopac_pay {
         billing_zip
     /);
 
+    my $cache_args = {
+        cc_args => $cc_args, 
+        user => $self->ctx->{user}->id,
+        xacts => \@payment_xacts
+    };
+
+    # generate a temporary cache token and cache the form data
+    my $token = md5_hex($$ . time() . rand());
+    $cache->put_cache($token, $cache_args, 30);
+
+    $logger->info("tpac caching payment info with token $token and xacts [@payment_xacts]");
+
+    # after we render the processing page, we quickly redirect to submit
+    # the actual payment.  The refresh url contains the payment token.
+    # It also contains the list of xact IDs, which allows us to clear the 
+    # cache at the earliest possible time while leaving a trace of which 
+    # transactions we were processing, so the UI can bring the user back
+    # to the payment form w/ the same xacts if the payment fails.
+
+    my $refresh = "1; url=main_pay/$token?xact=" . pop(@payment_xacts);
+    $refresh .= ";xact=$_" for @payment_xacts;
+    $self->ctx->{refresh} = $refresh;
+
+    return Apache2::Const::OK;
+}
+
+# retrieve the cached CC payment info and send off for processing
+sub load_myopac_pay {
+    my $self = shift;
+    my $token = $self->ctx->{page_args}->[0];
+    return Apache2::Const::HTTP_BAD_REQUEST unless $token;
+
+    my $cache = OpenSRF::Utils::Cache->new('global');
+    my $cache_args = $cache->get_cache($token);
+    $cache->delete_cache($token);
+
+    # this page is loaded immediately after the token is created.
+    # if the cached data is not there, it's because of an invalid
+    # token (or cache failure) and not because of a timeout.
+    return Apache2::Const::HTTP_BAD_REQUEST unless $cache_args;
+
+    my @payment_xacts = @{$cache_args->{xacts}};
+    my $cc_args = $cache_args->{cc_args};
+
+    # as an added security check, verify the user submitting 
+    # the form is the same as the user whose data was cached
+    return Apache2::Const::HTTP_BAD_REQUEST unless
+        $cache_args->{user} == $self->ctx->{user}->id;
+
+    $logger->info("tpac paying fines with token $token and xacts [@payment_xacts]");
+
+    my $r;
+    $r = $self->prepare_fines(undef, undef, \@payment_xacts) and return $r;
+
+    # balance_owed is computed specifically from the fines we're paying
+    if ($self->ctx->{fines}->{balance_owed} <= 0) {
+        $logger->info("tpac can't pay non-positive balance. xacts selected: [@payment_xacts]");
+        return Apache2::Const::HTTP_BAD_REQUEST;
+    }
+
     my $args = {
         "cc_args" => $cc_args,
         "userid" => $self->ctx->{user}->id,
         "payment_type" => "credit_card_payment",
-        "payments" => $self->prepare_fines_for_payment   # should be safe after self->prepare_fines
+        "payments" => $self->prepare_fines_for_payment  # should be safe after self->prepare_fines
     };
 
     my $resp = $U->simplereq("open-ils.circ", "open-ils.circ.money.payment",
@@ -1837,8 +1908,6 @@ sub update_bookbag_item_notes {
 sub load_myopac_bookbag_print {
     my ($self) = @_;
 
-    $self->apache->content_type("text/plain; encoding=utf8");
-
     my $id = int($self->cgi->param("list"));
 
     my ($sorter, $modifier) = $self->_get_bookbag_sort_params("sort");
@@ -1880,12 +1949,34 @@ sub load_myopac_bookbag_print {
     # provoke browser download dialogs.
     (my $filename = $bbag->id . $bbag->name) =~ s/[^a-z0-9_ -]//gi;
 
-    $self->apache->headers_out->add(
-        "Content-Disposition",
-        "attachment;filename=$filename.csv"
+    return $self->set_file_download_headers("$filename.csv");
+}
+
+sub load_myopac_circ_history_export {
+    my $self = shift;
+    my $e = $self->editor;
+    my $filename = $self->cgi->param('filename') || 'circ_history.csv';
+
+    my $ids = $e->json_query({
+        select => {
+            au => [{
+                column => 'id', 
+                transform => 'action.usr_visible_circs', 
+                result_field => 'id'
+            }]
+        },
+        from => 'au',
+        where => {id => $e->requestor->id} 
+    });
+
+    $self->ctx->{csv} = $U->fire_object_event(
+        undef, 
+        'circ.format.history.csv',
+        $e->search_action_circulation({id => [map {$_->{id}} @$ids]}, {substream =>1}),
+        $self->editor->requestor->home_ou
     );
 
-    return Apache2::Const::OK;
+    return $self->set_file_download_headers($filename);
 }
 
 sub load_password_reset {

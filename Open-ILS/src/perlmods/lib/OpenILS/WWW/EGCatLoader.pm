@@ -14,6 +14,7 @@ use OpenILS::Utils::CStoreEditor qw/:funcs/;
 use OpenILS::Utils::Fieldmapper;
 use DateTime::Format::ISO8601;
 use CGI qw(:all -utf8);
+use Time::HiRes;
 
 # EGCatLoader sub-modules 
 use OpenILS::WWW::EGCatLoader::Util;
@@ -33,6 +34,8 @@ use constant COOKIE_ANON_CACHE => 'anoncache';
 use constant ANON_CACHE_MYLIST => 'mylist';
 use constant ANON_CACHE_STAFF_SEARCH => 'staffsearch';
 
+use constant DEBUG_TIMING => 0;
+
 sub new {
     my($class, $apache, $ctx) = @_;
 
@@ -41,6 +44,7 @@ sub new {
     $self->apache($apache);
     $self->ctx($ctx);
     $self->cgi(new CGI);
+    $self->timelog("New page");
 
     OpenILS::Utils::CStoreEditor->init; # just in case
     $self->editor(new_editor());
@@ -77,6 +81,20 @@ sub cgi {
     return $self->{cgi};
 }
 
+sub timelog {
+    my($self, $description) = @_;
+
+    return unless DEBUG_TIMING;
+    return unless $description;
+    $self->ctx->{timing} ||= [];
+    
+    my $timer = [Time::HiRes::gettimeofday()];
+    $self->ctx->{time_begin} ||= $timer;
+
+    push @{$self->ctx->{timing}}, [
+        Time::HiRes::tv_interval($self->ctx->{time_begin}, $timer), $description
+    ];
+}
 
 # -----------------------------------------------------------------------------
 # Perform initial setup, load common data, then load page data
@@ -85,6 +103,7 @@ sub load {
     my $self = shift;
 
     $self->init_ro_object_cache;
+    $self->timelog("Initial load");
 
     my $stat = $self->load_common;
     return $stat unless $stat == Apache2::Const::OK;
@@ -99,7 +118,8 @@ sub load {
         $path =~ m:opac/(advanced|numeric|expert):;
 
     return $self->load_rresults if $path =~ m|opac/results|;
-    return $self->load_record if $path =~ m|opac/record|;
+    return $self->load_print_record if $path =~ m|opac/record/print|;
+    return $self->load_record if $path =~ m|opac/record/\d|;
     return $self->load_cnbrowse if $path =~ m|opac/cnbrowse|;
 
     return $self->load_mylist_add if $path =~ m|opac/mylist/add|;
@@ -139,11 +159,14 @@ sub load {
     # ----------------------------------------------------------------
     return $self->redirect_auth unless $self->editor->requestor;
 
+    return $self->load_email_record if $path =~ m|opac/record/email|;
+
     return $self->load_place_hold if $path =~ m|opac/place_hold|;
     return $self->load_myopac_holds if $path =~ m|opac/myopac/holds|;
     return $self->load_myopac_circs if $path =~ m|opac/myopac/circs|;
     return $self->load_myopac_payment_form if $path =~ m|opac/myopac/main_payment_form|;
     return $self->load_myopac_payments if $path =~ m|opac/myopac/main_payments|;
+    return $self->load_myopac_pay_init if $path =~ m|opac/myopac/main_pay_init|;
     return $self->load_myopac_pay if $path =~ m|opac/myopac/main_pay|;
     return $self->load_myopac_main if $path =~ m|opac/myopac/main|;
     return $self->load_myopac_receipt_email if $path =~ m|opac/myopac/receipt_email|;
@@ -154,6 +177,7 @@ sub load {
     return $self->load_myopac_bookbags if $path =~ m|opac/myopac/lists|;
     return $self->load_myopac_bookbag_print if $path =~ m|opac/myopac/list/print|;
     return $self->load_myopac_bookbag_update if $path =~ m|opac/myopac/list/update|;
+    return $self->load_myopac_circ_history_export if $path =~ m|opac/myopac/circ_history/export|;
     return $self->load_myopac_circ_history if $path =~ m|opac/myopac/circ_history|;
     return $self->load_myopac_hold_history if $path =~ m|opac/myopac/hold_history|;
     return $self->load_myopac_prefs_notify if $path =~ m|opac/myopac/prefs_notify|;
@@ -193,18 +217,6 @@ sub load_simple {
     $self->ctx->{page} = $page;
     $self->ctx->{search_ou} = $self->_get_search_lib();
 
-    if (my $patron_barcode = $self->cgi->param("patron_barcode")) {
-        # Special CGI variable from staff client; propagate henceforth as cookie
-        $self->apache->headers_out->add(
-            "Set-Cookie" => $self->cgi->cookie(
-                -name => "patron_barcode",
-                -path => "/",
-                -secure => 1,
-                -value => $patron_barcode,
-                -expires => undef
-            )
-        );
-    }
     return Apache2::Const::OK;
 }
 
@@ -251,8 +263,12 @@ sub load_common {
             return $self->load_logout($self->apache->unparsed_uri);
         }
     }
-    $ctx->{search_ou} = $self->_get_search_lib();
 
+    $self->extract_copy_location_group_info;
+    $ctx->{search_ou} = $self->_get_search_lib();
+    $self->staff_saved_searches_set_expansion_state if $ctx->{is_staff};
+    $self->load_eg_cache_hash;
+    $self->load_copy_location_groups;
     $self->staff_saved_searches_set_expansion_state if $ctx->{is_staff};
 
     return Apache2::Const::OK;
@@ -302,8 +318,6 @@ sub get_physical_loc {
     return $self->cgi->cookie(COOKIE_PHYSICAL_LOC);
 }
 
-
-
 # -----------------------------------------------------------------------------
 # Log in and redirect to the redirect_to URL (or home)
 # -----------------------------------------------------------------------------
@@ -329,10 +343,14 @@ sub load_login {
     my $args = {	
         username => $username, 
         password => md5_hex($seed . md5_hex($password)), 
-        type => ($persist) ? 'persist' : 'opac' 
+        type => ($persist) ? 'persist' : 'opac',
+        agent => 'opac'
     };
 
     my $bc_regex = $ctx->{get_org_setting}->($org_unit, 'opac.barcode_regex');
+
+    # To avoid surprises, default to "Barcodes start with digits"
+    $bc_regex = '^\d' unless $bc_regex;
 
     $args->{barcode} = delete $args->{username} 
         if $bc_regex and ($username =~ /$bc_regex/);

@@ -188,6 +188,8 @@ CREATE TABLE actor.stat_cat (
     sip_field   CHAR(2) REFERENCES actor.stat_cat_sip_fields(field) ON UPDATE CASCADE ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
     sip_format  TEXT,
     checkout_archive    BOOL NOT NULL DEFAULT FALSE,
+	required	BOOL NOT NULL DEFAULT FALSE,
+	allow_freetext	BOOL NOT NULL DEFAULT TRUE,
 	CONSTRAINT sc_once_per_owner UNIQUE (owner,name)
 );
 COMMENT ON TABLE actor.stat_cat IS $$
@@ -362,6 +364,21 @@ CREATE TABLE actor.org_unit_proximity (
 	prox		INT
 );
 CREATE INDEX from_prox_idx ON actor.org_unit_proximity (from_org);
+
+CREATE TABLE actor.stat_cat_entry_default (
+	id		SERIAL	PRIMARY KEY,
+        stat_cat_entry	INT	NOT NULL REFERENCES actor.stat_cat_entry(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+	stat_cat	INT	NOT NULL REFERENCES actor.stat_cat(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+	owner		INT	NOT NULL REFERENCES actor.org_unit(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+	CONSTRAINT sced_once_per_owner UNIQUE (stat_cat,owner)
+);
+COMMENT ON TABLE actor.stat_cat_entry_default IS $$
+User Statistical Category Default Entry
+
+A library may choose one of the stat_cat entries to be the
+default entry.
+$$;
+
 
 CREATE TABLE actor.hours_of_operation (
 	id		INT	PRIMARY KEY REFERENCES actor.org_unit (id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
@@ -621,6 +638,47 @@ CREATE TABLE actor.address_alert (
     post_code       TEXT,
     mailing_address BOOL    NOT NULL DEFAULT FALSE,
     billing_address BOOL    NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE actor.usr_activity (
+    id          BIGSERIAL   PRIMARY KEY,
+    usr         INT         REFERENCES actor.usr (id) ON DELETE SET NULL,
+    etype       INT         NOT NULL REFERENCES config.usr_activity_type (id),
+    event_time  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE actor.toolbar (
+    id          BIGSERIAL   PRIMARY KEY,
+    ws          INT         REFERENCES actor.workstation (id) ON DELETE CASCADE,
+    org         INT         REFERENCES actor.org_unit (id) ON DELETE CASCADE,
+    usr         INT         REFERENCES actor.usr (id) ON DELETE CASCADE,
+    label       TEXT        NOT NULL,
+    layout      TEXT        NOT NULL,
+    CONSTRAINT only_one_type CHECK (
+        (ws IS NOT NULL AND COALESCE(org,usr) IS NULL) OR
+        (org IS NOT NULL AND COALESCE(ws,usr) IS NULL) OR
+        (usr IS NOT NULL AND COALESCE(org,ws) IS NULL)
+    ),
+    CONSTRAINT layout_must_be_json CHECK ( is_json(layout) )
+);
+CREATE UNIQUE INDEX label_once_per_ws ON actor.toolbar (ws, label) WHERE ws IS NOT NULL;
+CREATE UNIQUE INDEX label_once_per_org ON actor.toolbar (org, label) WHERE org IS NOT NULL;
+CREATE UNIQUE INDEX label_once_per_usr ON actor.toolbar (usr, label) WHERE usr IS NOT NULL;
+
+CREATE TYPE actor.org_unit_custom_tree_purpose AS ENUM ('opac');
+CREATE TABLE actor.org_unit_custom_tree (
+    id              SERIAL  PRIMARY KEY,
+    active          BOOLEAN DEFAULT FALSE,
+    purpose         actor.org_unit_custom_tree_purpose NOT NULL DEFAULT 'opac' UNIQUE
+);
+
+CREATE TABLE actor.org_unit_custom_tree_node (
+    id              SERIAL  PRIMARY KEY,
+    tree            INTEGER REFERENCES actor.org_unit_custom_tree (id) DEFERRABLE INITIALLY DEFERRED,
+	org_unit        INTEGER NOT NULL REFERENCES actor.org_unit (id) DEFERRABLE INITIALLY DEFERRED,
+	parent_node     INTEGER REFERENCES actor.org_unit_custom_tree_node (id) DEFERRABLE INITIALLY DEFERRED,
+    sibling_order   INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT aouctn_once_per_org UNIQUE (tree, org_unit)
 );
 
 COMMIT;

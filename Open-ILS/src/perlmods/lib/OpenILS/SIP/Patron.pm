@@ -118,7 +118,28 @@ sub new {
     syslog("LOG_DEBUG", "OILS: new OpenILS Patron(%s => %s): found patron : barred=%s, card:active=%s", 
         $key, $patron_id, $user->barred, $user->card->active );
 
+    $U->log_user_activity($user->id, $self->get_act_who, 'verify');
+
     return $self;
+}
+
+sub get_act_who {
+    my $self = shift;
+    my $config = OpenILS::SIP->config();
+    my $login = OpenILS::SIP->login_account();
+
+    my $act_who = $config->{implementation_config}->{default_activity_who};
+    my $force_who = $config->{implementation_config}->{force_activity_who};
+
+    # 1. future: test sip extension for caller-provided ewho and !$force_who
+
+    # 2. See if the login is tagged with an ewho
+    return $login->{activity_who} if $login->{activity_who};
+
+    # 3. if all else fails, see if there is an institution-wide ewho
+    return $config->{activity_who} if $config->{activity_who};
+
+    return undef;
 }
 
 # grab patron penalties.  Only grab non-archived penalties that are for fines,
@@ -624,14 +645,14 @@ sub recall_items {
 sub unavail_holds {
      my ($self, $start, $end) = @_;
      syslog('LOG_DEBUG', 'OILS: Patron->unavail_holds()');
- 
+
      my $ids = $self->{editor}->json_query({
         select => {ahr => ['id']},
         from => 'ahr',
         where => {
-            usr              => $self->{user}->id,
+            usr => $self->{user}->id,
             fulfillment_time => undef,
-            cancel_time      => undef,
+            cancel_time => undef,
             '-or' => [
                 {current_shelf_lib => undef},
                 {current_shelf_lib => {'!=' => {'+ahr' => 'pickup_lib'}}}

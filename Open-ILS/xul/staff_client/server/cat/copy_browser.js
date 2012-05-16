@@ -1565,7 +1565,8 @@ cat.copy_browser.prototype = {
                 data.node = obj.map_tree[ 'aou_' + parent_org.id() ];
             }
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            obj.list.refresh_ordinals();
+            var node = nparams.treeitem_node;
             if (params) {
                 for (var i in params) {
                     node.setAttribute(i,params[i]);
@@ -1631,7 +1632,8 @@ cat.copy_browser.prototype = {
                 'no_auto_select' : true,
             };
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            obj.list.refresh_ordinals();
+            var node = nparams.treeitem_node;
             obj.map_tree[ 'acn_' + acn_tree.id() ] =  node;
             if (params) {
                 for (var i in params) {
@@ -1692,7 +1694,8 @@ cat.copy_browser.prototype = {
                 'no_auto_select' : true,
             };
             var nparams = obj.list.append(data);
-            var node = nparams.my_node;
+            obj.list.refresh_ordinals();
+            var node = nparams.treeitem_node;
             obj.map_tree[ 'acp_' + acp_item.id() ] =  node;
             if (params) {
                 for (var i in params) {
@@ -1807,12 +1810,12 @@ cat.copy_browser.prototype = {
                                         [ row.my.circ.target_copy() ]
                                     );
 
-                                    params.row_node.setAttribute( 'retrieve_id',row.my.acp.barcode() );
+                                    params.treeitem_node.setAttribute( 'retrieve_id',row.my.acp.barcode() );
 
                                 }
                             );
                         } else {
-                            params.row_node.setAttribute( 'retrieve_id',row.my.acp.barcode() );
+                            params.treeitem_node.setAttribute( 'retrieve_id',row.my.acp.barcode() );
                         }
                     */
                         obj.funcs.push(
@@ -1821,6 +1824,7 @@ cat.copy_browser.prototype = {
                                 if (typeof params.on_retrieve == 'function') {
                                     params.on_retrieve(row);
                                 }
+                                obj.list.refresh_ordinals();
 
                             }
                         );
@@ -1840,6 +1844,20 @@ cat.copy_browser.prototype = {
                         if (typeof window.xulG == 'object' && typeof window.xulG.on_select == 'function') {
                             window.xulG.on_select(list);
                         }
+                        obj.list.refresh_ordinals();
+                    },
+                    'on_dblclick' : function(ev) {
+                        JSAN.use('util.functional');
+                        JSAN.use('util.widgets');
+                        var sel = obj.list.retrieve_selection();
+                        obj.controller.view.sel_clip.disabled = sel.length < 1;
+                        obj.sel_list = util.functional.map_list(
+                            sel,
+                            function(o) { return o.getAttribute('retrieve_id'); }
+                        );
+                        obj.toggle_actions();
+                        util.widgets.dispatch('command','cmd_edit_items');
+                        obj.list.refresh_ordinals();
                     },
                     'on_select' : function(ev) {
                         JSAN.use('util.functional');
@@ -1856,6 +1874,7 @@ cat.copy_browser.prototype = {
                         if (typeof window.xulG == 'object' && typeof window.xulG.on_select == 'function') {
                             window.xulG.on_select(obj.sel_list);
                         }
+                        obj.list.refresh_ordinals();
                     },
                 }
             );
@@ -1979,7 +1998,14 @@ cat.copy_browser.prototype = {
             obj.org_ids = util.functional.map_list( obj.org_ids, function (o) { return Number(o); });
             obj.show_my_libs( obj.default_lib.id() );
             // FIXME - we get a null from the copy_count call if we call it too quickly here
-            setTimeout( function() { obj.show_consortial_count(); }, 2000 );
+            setTimeout(
+                function() {
+                    obj.show_consortial_count();
+                    if (typeof xulG.reload_opac == 'function') {
+                        xulG.reload_opac();
+                    }
+                }, 2000
+            );
         } catch(E) {
             this.error.standard_unexpected_error_alert(document.getElementById('catStrings').getString('staff.cat.copy_browser.refresh_list.error'),E);
         }

@@ -351,6 +351,7 @@ sub update_patron {
 	$evt = check_group_perm($session, $user_obj, $patron);
 	return $evt if $evt;
 
+	$apputils->set_audit_info($session, $user_session, $user_obj->id, $user_obj->wsid);
 
 	# $new_patron is the patron in progress.  $patron is the original patron
 	# passed in with the method.  new_patron will change as the components
@@ -376,6 +377,10 @@ sub update_patron {
 	if($patron->isnew()) {
 		( $new_patron, $evt ) = _add_patron($session, _clone_patron($patron), $user_obj);
 		return $evt if $evt;
+		if($U->is_true($patron->barred)) {
+			$evt = $U->check_perms($user_obj->id, $patron->home_ou, 'BAR_PATRON');
+			return $evt if $evt;
+		}
 	} else {
         $new_patron = $patron;
 
@@ -384,6 +389,10 @@ sub update_patron {
         $old_patron = $e->retrieve_actor_user($patron->id) or
             return $e->die_event;
         $e->disconnect;
+        if($U->is_true($old_patron->barred) != $U->is_true($new_patron->barred)) {
+            $evt = $U->check_perms($user_obj->id, $patron->home_ou, $U->is_true($old_patron->barred) ? 'UNBAR_PATRON' : 'BAR_PATRON');
+            return $evt if $evt;
+        }
     }
 
 	( $new_patron, $evt ) = _add_update_addresses($session, $patron, $new_patron, $user_obj);
@@ -1029,6 +1038,7 @@ sub set_user_work_ous {
 	return $evt if $evt;
 
 	my $session = $apputils->start_db_session();
+	$apputils->set_audit_info($session, $ses, $requestor->id, $requestor->wsid);
 
 	for my $map (@$maps) {
 
@@ -1069,6 +1079,7 @@ sub set_user_perms {
 
 	my( $user_obj, $evt ) = $U->checkses($ses);
 	return $evt if $evt;
+	$apputils->set_audit_info($session, $ses, $user_obj->id, $user_obj->wsid);
 
 	my $perms = $session->request('open-ils.storage.permission.user_perms.atomic', $user_obj->id)->gather(1);
 
@@ -2656,7 +2667,7 @@ sub usrname_exists {
 	my( $self, $conn, $auth, $usrname ) = @_;
 	my $e = new_editor(authtoken=>$auth);
 	return $e->event unless $e->checkauth;
-	my $a = $e->search_actor_user({usrname => $usrname, deleted=>'f'}, {idlist=>1});
+	my $a = $e->search_actor_user({usrname => $usrname}, {idlist=>1});
 	return $$a[0] if $a and @$a;
 	return undef;
 }
@@ -2947,7 +2958,8 @@ sub user_retrieve_fleshed_by_id {
 		"addresses",
 		"billing_address",
 		"mailing_address",
-		"stat_cat_entries" ];
+		"stat_cat_entries",
+		"usr_activity" ];
 	return new_flesh_user($user_id, $fields, $e);
 }
 
@@ -2962,6 +2974,12 @@ sub new_flesh_user {
     if(grep {$_ eq 'standing_penalties'} @$fields) {
         $fields = [grep {$_ ne 'standing_penalties'} @$fields];
         $fetch_penalties = 1;
+    }
+
+    my $fetch_usr_act = 0;
+    if(grep {$_ eq 'usr_activity'} @$fields) {
+        $fields = [grep {$_ ne 'usr_activity'} @$fields];
+        $fetch_usr_act = 1;
     }
 
 	my $user = $e->retrieve_actor_user(
@@ -3009,6 +3027,31 @@ sub new_flesh_user {
                     flesh_fields => {ausp => ['standing_penalty']}
                 }
             ])
+        );
+    }
+
+    # retrieve the most recent usr_activity entry
+    if ($fetch_usr_act) {
+
+        # max number to return for simple patron fleshing
+        my $limit = $U->ou_ancestor_setting_value(
+            $e->requestor->ws_ou, 
+            'circ.patron.usr_activity_retrieve.max');
+
+        my $opts = {
+            flesh => 1,
+            flesh_fields => {auact => ['etype']},
+            order_by => {auact => 'event_time DESC'}, 
+        };
+
+        # 0 == none, <0 == return all
+        $limit = 1 unless defined $limit;
+        $opts->{limit} = $limit if $limit > 0;
+
+        $user->usr_activity( 
+            ($limit == 0) ? 
+                [] : # skip the DB call
+                $e->search_actor_usr_activity([{usr => $user->id}, $opts])
         );
     }
 
@@ -3626,7 +3669,7 @@ sub really_delete_user {
     my $evt = group_perm_failed($session, $e->requestor, $user);
     return $e->die_event($evt) if $evt;
     my $stat = $e->json_query(
-        {from => ['actor.usr_delete', $user_id, $dest_user_id]})->[0] 
+        {from => ['actor.usr_delete', $user_id, $dest_user_id]})->[0]
         or return $e->die_event;
     $e->commit;
     return 1;
@@ -3670,11 +3713,18 @@ sub user_payments {
                 }   
             }
         },
-        order_by => [{ # by default, order newest payments first
-            class => 'mp', 
-            field => 'payment_ts',
-            direction => 'desc'
-        }]
+        order_by => [
+            { # by default, order newest payments first
+                class => 'mp', 
+                field => 'payment_ts',
+                direction => 'desc'
+            }, {
+                # secondary sort in ID as a tie-breaker, since payments created
+                # within the same transaction will have identical payment_ts's
+                class => 'mp',
+                field => 'id'
+            }
+        ]
     };
 
     for (qw/order_by limit offset/) {

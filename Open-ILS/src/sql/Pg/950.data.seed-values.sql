@@ -141,39 +141,39 @@ INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, 
     (14, 'subject', 'topic', oils_i18n_gettext(14, 'Topic Subject', 'cmf', 'label'), 'mods32', $$//mods32:mods/mods32:subject/mods32:topic$$, TRUE );
 --INSERT INTO config.metabib_field ( id, field_class, name, format, xpath ) VALUES 
 --  ( id, field_class, name, xpath ) VALUES ( 'subject', 'genre', 'mods32', $$//mods32:mods/mods32:genre$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES 
-    (15, 'keyword', 'keyword', oils_i18n_gettext(15, 'General Keywords', 'cmf', 'label'), 'mods32', $$//mods32:mods/*[not(local-name()='originInfo')]$$ ); -- /* to fool vim */;
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (16, 'subject', 'complete', oils_i18n_gettext(16, 'All Subjects', 'cmf', 'label'), 'mods32', $$//mods32:mods/mods32:subject$$ );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES 
+    (15, 'keyword', 'keyword', oils_i18n_gettext(15, 'General Keywords', 'cmf', 'label'), 'mods32', $$//mods32:mods/*[not(local-name()='originInfo')]$$, FALSE ); -- /* to fool vim */;
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (16, 'subject', 'complete', oils_i18n_gettext(16, 'All Subjects', 'cmf', 'label'), 'mods32', $$//mods32:mods/mods32:subject$$, FALSE );
 
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (17, 'identifier', 'accession', oils_i18n_gettext(17, 'Accession Number', 'cmf', 'label'), 'marcxml', $$//marc:controlfield[@tag='001']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (18, 'identifier', 'isbn', oils_i18n_gettext(18, 'ISBN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='020']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (19, 'identifier', 'issn', oils_i18n_gettext(19, 'ISSN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='022']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (20, 'identifier', 'upc', oils_i18n_gettext(20, 'UPC', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='1']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (21, 'identifier', 'ismn', oils_i18n_gettext(21, 'ISMN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='2']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (22, 'identifier', 'ean', oils_i18n_gettext(22, 'EAN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='3']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (23, 'identifier', 'isrc', oils_i18n_gettext(23, 'ISRC', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='0']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (24, 'identifier', 'sici', oils_i18n_gettext(24, 'SICI', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='4']/marc:subfield[@code='a' or @code='z']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (25, 'identifier', 'bibcn', oils_i18n_gettext(25, 'Local Free-Text Call Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='099']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (26, 'identifier', 'tcn', oils_i18n_gettext(26, 'Title Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='901']/marc:subfield[@code='a']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath ) VALUES
-    (27, 'identifier', 'bibid', oils_i18n_gettext(27, 'Internal ID', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='901']/marc:subfield[@code='c']$$ );
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, search_field, facet_field) VALUES
-    (28, 'identifier', 'authority_id', oils_i18n_gettext(28, 'Authority Record ID', 'cmf', 'label'), 'marcxml', '//marc:datafield/marc:subfield[@code="0"]', FALSE, TRUE);
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath) VALUES
-    (29, 'identifier', 'scn', oils_i18n_gettext(29, 'System Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='035']/marc:subfield[@code="a"]$$);
-INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath) VALUES
-    (30, 'identifier', 'lccn', oils_i18n_gettext(30, 'LC Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='010']/marc:subfield[@code="a" or @code='z']$$);
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (17, 'identifier', 'accession', oils_i18n_gettext(17, 'Accession Number', 'cmf', 'label'), 'marcxml', $$//marc:controlfield[@tag='001']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (18, 'identifier', 'isbn', oils_i18n_gettext(18, 'ISBN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='020']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (19, 'identifier', 'issn', oils_i18n_gettext(19, 'ISSN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='022']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (20, 'identifier', 'upc', oils_i18n_gettext(20, 'UPC', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='1']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (21, 'identifier', 'ismn', oils_i18n_gettext(21, 'ISMN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='2']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (22, 'identifier', 'ean', oils_i18n_gettext(22, 'EAN', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='3']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (23, 'identifier', 'isrc', oils_i18n_gettext(23, 'ISRC', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='0']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (24, 'identifier', 'sici', oils_i18n_gettext(24, 'SICI', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='024' and @ind1='4']/marc:subfield[@code='a' or @code='z']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (25, 'identifier', 'bibcn', oils_i18n_gettext(25, 'Local Free-Text Call Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='099']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (26, 'identifier', 'tcn', oils_i18n_gettext(26, 'Title Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='901']/marc:subfield[@code='a']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field ) VALUES
+    (27, 'identifier', 'bibid', oils_i18n_gettext(27, 'Internal ID', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='901']/marc:subfield[@code='c']$$, FALSE );
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, search_field, facet_field, browse_field) VALUES
+    (28, 'identifier', 'authority_id', oils_i18n_gettext(28, 'Authority Record ID', 'cmf', 'label'), 'marcxml', '//marc:datafield/marc:subfield[@code="0"]', FALSE, TRUE, FALSE);
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field) VALUES
+    (29, 'identifier', 'scn', oils_i18n_gettext(29, 'System Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='035']/marc:subfield[@code="a"]$$, FALSE);
+INSERT INTO config.metabib_field ( id, field_class, name, label, format, xpath, browse_field) VALUES
+    (30, 'identifier', 'lccn', oils_i18n_gettext(30, 'LC Control Number', 'cmf', 'label'), 'marcxml', $$//marc:datafield[@tag='010']/marc:subfield[@code="a" or @code='z']$$, FALSE);
 
 SELECT SETVAL('config.metabib_field_id_seq'::TEXT, (SELECT MAX(id) FROM config.metabib_field), TRUE);
 
@@ -1529,7 +1529,35 @@ INSERT INTO permission.perm_list ( id, code, description ) VALUES
  ( 519, 'ADMIN_SMS_CARRIER', oils_i18n_gettext( 519,
     'Allows a user to add/create/delete SMS Carrier entries.', 'ppl', 'description' )),
  ( 520, 'COPY_DELETE_WARNING.override', oils_i18n_gettext( 520,
-    'Allow a user to override warnings about deleting copies in problematic situations.', 'ppl', 'description' ));
+    'Allow a user to override warnings about deleting copies in problematic situations.', 'ppl', 'description' )),
+ ( 521, 'IMPORT_ACQ_LINEITEM_BIB_RECORD_UPLOAD', oils_i18n_gettext( 521,
+    'Allows a user to create new bibs directly from an ACQ MARC file upload', 'ppl', 'description' )),
+ ( 522, 'IMPORT_AUTHORITY_MARC', oils_i18n_gettext( 522,
+    'Allows a user to create new authority records', 'ppl', 'description' )),
+ ( 523, 'ADMIN_TOOLBAR', oils_i18n_gettext( 523,
+    'Allows a user to create, edit, and delete custom toolbars', 'ppl', 'description' )),
+ ( 524, 'PLACE_UNFILLABLE_HOLD', oils_i18n_gettext( 524,
+    'Allows a user to place a hold that cannot currently be filled.', 'ppl', 'description' )),
+ ( 525, 'CREATE_PATRON_STAT_CAT_ENTRY_DEFAULT', oils_i18n_gettext( 525, 
+    'User may set a default entry in a patron statistical category', 'ppl', 'description' )),
+ ( 526, 'UPDATE_PATRON_STAT_CAT_ENTRY_DEFAULT', oils_i18n_gettext( 526, 
+    'User may reset a default entry in a patron statistical category', 'ppl', 'description' )),
+ ( 527, 'DELETE_PATRON_STAT_CAT_ENTRY_DEFAULT', oils_i18n_gettext( 527, 
+    'User may unset a default entry in a patron statistical category', 'ppl', 'description' )),
+ ( 528, 'ADMIN_ORG_UNIT_CUSTOM_TREE', oils_i18n_gettext( 528, 
+    'User may update custom org unit trees', 'ppl', 'description' )),
+ ( 529, 'ADMIN_IMPORT_MATCH_SET', oils_i18n_gettext( 529,
+    'Allows a user to create/retrieve/update/delete vandelay match sets', 'ppl', 'description' )),
+ ( 530, 'VIEW_IMPORT_MATCH_SET', oils_i18n_gettext( 530,
+    'Allows a user to view vandelay match sets', 'ppl', 'description' )),
+ ( 531, 'ADMIN_ADDRESS_ALERT', oils_i18n_gettext( 531,
+    'Allows a user to create/retrieve/update/delete address alerts', 'ppl', 'description' )), 
+ ( 532, 'VIEW_ADDRESS_ALERT', oils_i18n_gettext( 532,
+    'Allows a user to view address alerts', 'ppl', 'description' )), 
+ ( 533, 'ADMIN_COPY_LOCATION_GROUP', oils_i18n_gettext( 533,
+    'Allows a user to create/retrieve/update/delete copy location groups', 'ppl', 'description' )), 
+ ( 534, 'ADMIN_USER_ACTIVITY_TYPE', oils_i18n_gettext( 534,
+    'Allows a user to create/retrieve/update/delete user activity types', 'ppl', 'description' ));
 
 
 SELECT SETVAL('permission.perm_list_id_seq'::TEXT, 1000);
@@ -1739,6 +1767,7 @@ INSERT INTO permission.grp_perm_map (grp, perm, depth, grantable)
 			'RENEW_HOLD_OVERRIDE',
 			'UPDATE_COPY',
 			'UPDATE_VOLUME',
+			'ADMIN_TOOLBAR',
 			'VOLUME_HOLDS');
 
 
@@ -1766,6 +1795,7 @@ INSERT INTO permission.grp_perm_map (grp, perm, depth, grantable)
 			'DELETE_TITLE_NOTE',
 			'IMPORT_ACQ_LINEITEM_BIB_RECORD',
 			'IMPORT_MARC',
+            'IMPORT_AUTHORITY_MARC',
 			'MERGE_AUTH_RECORDS',
 			'MERGE_BIB_RECORDS',
 			'UPDATE_AUTHORITY_IMPORT_QUEUE',
@@ -2049,12 +2079,14 @@ INSERT INTO permission.grp_perm_map (grp, perm, depth, grantable)
 			'CREATE_NON_CAT_TYPE',
 			'CREATE_PATRON_STAT_CAT',
 			'CREATE_PATRON_STAT_CAT_ENTRY',
+			'CREATE_PATRON_STAT_CAT_ENTRY_DEFAULT',
 			'CREATE_PATRON_STAT_CAT_ENTRY_MAP',
 			'CREATE_USER_GROUP_LINK',
 			'DELETE_BILLING_TYPE',
 			'DELETE_NON_CAT_TYPE',
 			'DELETE_PATRON_STAT_CAT',
 			'DELETE_PATRON_STAT_CAT_ENTRY',
+			'DELETE_PATRON_STAT_CAT_ENTRY_DEFAULT',
 			'DELETE_PATRON_STAT_CAT_ENTRY_MAP',
 			'DELETE_TRANSIT',
 			'group_application.user.staff',
@@ -2428,6 +2460,9 @@ INSERT INTO config.usr_setting_type (name,opac_visible,label,description,datatyp
 INSERT INTO config.usr_setting_type (name,opac_visible,label,description,datatype)
     VALUES ('circ.holds_behind_desk', FALSE, 'Hold is behind Circ Desk', 'Hold is behind Circ Desk', 'bool');
 
+INSERT INTO config.usr_setting_type (name,opac_visible,label,description,datatype)
+    VALUES ('opac.default_pickup_location', TRUE, 'Default Hold Pickup Location', 'Default location for holds pickup', 'integer');
+
 -- Add groups for org_unitu settings
 INSERT INTO config.settings_group (name, label) VALUES
 ('sys', oils_i18n_gettext('config.settings_group.system', 'System', 'coust', 'label')),
@@ -2441,7 +2476,7 @@ INSERT INTO config.settings_group (name, label) VALUES
 ('opac', oils_i18n_gettext('config.settings_group.opac', 'OPAC', 'coust', 'label')),
 ('prog', oils_i18n_gettext('config.settings_group.program', 'Program', 'coust', 'label')),
 ('glob', oils_i18n_gettext('config.settings_group.global', 'Global', 'coust', 'label')),
-('finance', oils_i18n_gettext('config.settings_group.finances', 'Finanaces', 'coust', 'label')),
+('finance', oils_i18n_gettext('config.settings_group.finances', 'Finances', 'coust', 'label')),
 ('credit', oils_i18n_gettext('config.settings_group.ccp', 'Credit Card Processing', 'coust', 'label')),
 ('serial', oils_i18n_gettext('config.settings_group.serial', 'Serials', 'coust', 'label')),
 ('recall', oils_i18n_gettext('config.settings_group.recall', 'Recalls', 'coust', 'label')),
@@ -4407,6 +4442,33 @@ INSERT into config.org_unit_setting_type
         'coust', 'description'),
     'bool', null)
 
+,( 'ui.patron.edit.au.prefix.require', 'gui',
+    oils_i18n_gettext('ui.patron.edit.au.prefix.require',
+        'Require prefix field on patron registration',
+        'coust', 'label'),
+    oils_i18n_gettext('ui.patron.edit.au.prefix.require',
+        'The prefix field will be required on the patron registration screen.',
+        'coust', 'description'),
+    'bool', null)
+	
+,( 'ui.patron.edit.au.prefix.show', 'gui',
+    oils_i18n_gettext('ui.patron.edit.au.prefix.show',
+        'Show prefix field on patron registration',
+        'coust', 'label'),
+    oils_i18n_gettext('ui.patron.edit.au.prefix.show',
+        'The prefix field will be shown on the patron registration screen. Showing a field makes it appear with required fields even when not required. If the field is required this setting is ignored.',
+        'coust', 'description'),
+    'bool', null)
+
+,( 'ui.patron.edit.au.prefix.suggest', 'gui',
+    oils_i18n_gettext('ui.patron.edit.au.prefix.suggest',
+        'Suggest prefix field on patron registration',
+        'coust', 'label'),
+    oils_i18n_gettext('ui.patron.edit.au.prefix.suggest',
+        'The prefix field will be shown on the patron registration screen. Showing a field makes it appear with required fields even when not required. If the field is required this setting is ignored.',
+        'coust', 'description'),
+    'bool', null)
+
 ,( 'ui.patron.edit.au.second_given_name.show', 'gui',
     oils_i18n_gettext('ui.patron.edit.au.second_given_name.show',
         'Show second_given_name field on patron registration',
@@ -4625,6 +4687,21 @@ INSERT into config.org_unit_setting_type
         'description'
     ),
     'bool', null)
+,( 'serial.default_display_grouping', 'serial',
+    oils_i18n_gettext(
+        'serial.default_display_grouping',
+        'Default display grouping for serials distributions presented in the OPAC.',
+        'coust',
+        'label'
+    ),
+    oils_i18n_gettext(
+        'serial.default_display_grouping',
+        'Default display grouping for serials distributions presented in the OPAC. This can be "enum" or "chron".',
+        'coust',
+        'description'
+    ),
+    'string', null)
+
 ;
 
 UPDATE config.org_unit_setting_type
@@ -5497,6 +5574,7 @@ INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfiel
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('o',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'D-2');
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('p',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'8 mm.');
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('q',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'Hi-8 mm.');
+INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('s',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'Blu-ray');
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('u',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'Unknown');
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('v',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'DVD');
 INSERT INTO config.marc21_physical_characteristic_value_map (value,ptype_subfield,label) VALUES ('z',CURRVAL('config.marc21_physical_characteristic_subfield_map_id_seq'),'Other');
@@ -6288,18 +6366,23 @@ Dear [% user.family_name %], [% user.first_given_name %]
 Our records indicate the following items are overdue.
 
 [% FOR circ IN target %]
-    Title: [% circ.target_copy.call_number.record.simple_record.title %] 
-    Barcode: [% circ.target_copy.barcode %] 
+    [%- copy_details = helpers.get_copy_bib_basics(circ.target_copy.id) -%]
+    Title: [% copy_details.title %]
+    Author: [% copy_details.author %]
+    Call Number: [% circ.target_copy.call_number.label %]
+    Barcode: [% circ.target_copy.barcode %]
     Due: [% date.format(helpers.format_date(circ.due_date), '%Y-%m-%d') %]
     Item Cost: [% helpers.get_copy_price(circ.target_copy) %]
-    Total Owed For Transaction: [% circ.billable_transaction.summary.total_owed %]
+    Total Owed For Transaction: [% circ.billable_transaction.summary.balance_owed %]
     Library: [% circ.circ_lib.name %]
+
 [% END %]
 
 $$);
 
 INSERT INTO action_trigger.environment (event_def, path) VALUES 
-    (1, 'target_copy.call_number.record.simple_record'),
+    (1, 'target_copy.call_number'),
+    (1, 'target_copy.location'),
     (1, 'usr'),
     (1, 'billable_transaction.summary'),
     (1, 'circ_lib.billing_address');
@@ -6308,6 +6391,9 @@ INSERT INTO action_trigger.environment (event_def, path) VALUES
 
 INSERT INTO action_trigger.event_definition (id, active, owner, name, hook, validator, reactor, delay, delay_field) 
     VALUES (2, 'f', 1, '90 Day Overdue Mark Lost', 'checkout.due', 'CircIsOverdue', 'MarkItemLost', '90 days', 'due_date');
+
+INSERT INTO action_trigger.event_params (event_def, param, value) VALUES
+    (2, 'editor', '''1''');
 
 -- Sample Auto Mark Lost Notice --
 
@@ -6324,22 +6410,28 @@ Dear [% user.family_name %], [% user.first_given_name %]
 The following items are 90 days overdue and have been marked LOST.
 
 [% FOR circ IN target %]
-    Title: [% circ.target_copy.call_number.record.simple_record.title %] 
-    Barcode: [% circ.target_copy.barcode %] 
+    [%- copy_details = helpers.get_copy_bib_basics(circ.target_copy.id) -%]
+    Title: [% copy_details.title %], by [% copy_details.author %]
+    Call Number: [% circ.target_copy.call_number.label %]
+    Shelving Location: [% circ.target_copy.location.name %]
+    Barcode: [% circ.target_copy.barcode %]
     Due: [% date.format(helpers.format_date(circ.due_date), '%Y-%m-%d') %]
     Item Cost: [% helpers.get_copy_price(circ.target_copy) %]
-    Total Owed For Transaction: [% circ.billable_transaction.summary.total_owed %]
+    Total Owed For Transaction: [% circ.billable_transaction.summary.balance_owed %]
     Library: [% circ.circ_lib.name %]
+
 [% END %]
 
 $$);
 
 
 INSERT INTO action_trigger.environment (event_def, path) VALUES 
-    (3, 'target_copy.call_number.record.simple_record'),
+    (3, 'target_copy.call_number'),
     (3, 'usr'),
     (3, 'billable_transaction.summary'),
-    (3, 'circ_lib.billing_address');
+    (3, 'circ_lib.billing_address'),
+    (3, 'target_copy.location');
+
 
 -- Sample Purchase Order HTML Template --
 
@@ -6498,8 +6590,9 @@ Dear [% user.family_name %], [% user.first_given_name %]
 The item(s) you requested are available for pickup from the Library.
 
 [% FOR hold IN target %]
-    Title: [% hold.current_copy.call_number.record.simple_record.title %]
-    Author: [% hold.current_copy.call_number.record.simple_record.author %]
+    [%- copy_details = helpers.get_copy_bib_basics(hold.current_copy.id) -%]
+    Title: [% copy_details.title %]
+    Author: [% copy_details.author %]
     Call Number: [% hold.current_copy.call_number.label %]
     Barcode: [% hold.current_copy.barcode %]
     Library: [% hold.pickup_lib.name %]
@@ -6507,6 +6600,8 @@ The item(s) you requested are available for pickup from the Library.
 
 $$);
 
+INSERT INTO action_trigger.event_params (event_def, param, value)
+    VALUES (5, 'check_email_notify', 1);
 
 INSERT INTO action_trigger.hook (
         key,
@@ -6521,7 +6616,7 @@ INSERT INTO action_trigger.hook (
     );
 
 INSERT INTO action_trigger.environment (event_def, path) VALUES
-    (5, 'current_copy.call_number.record.simple_record'),
+    (5, 'current_copy.call_number'),
     (5, 'usr'),
     (5, 'pickup_lib.billing_address');
 
@@ -6569,6 +6664,8 @@ pickup, but these holds will soon expire.
 $$
 );
 
+INSERT INTO action_trigger.event_params (event_def, param, value)
+    VALUES (7, 'check_email_notify', 1);
 
 INSERT INTO action_trigger.environment (
         event_def,
@@ -6592,6 +6689,15 @@ INSERT INTO action_trigger.hook (
         TRUE
     );
 
+INSERT INTO action_trigger.validator (module,description) VALUES
+    ('HoldNotifyCheck',
+    oils_i18n_gettext(
+        'HoldNotifyCheck',
+        'Check Hold notification flag(s)',
+        'atval',
+        'description'
+    ));
+
 INSERT INTO action_trigger.event_definition (
         id,
         active,
@@ -6610,7 +6716,7 @@ INSERT INTO action_trigger.event_definition (
         1,
         'Hold waiting for pickup for long time',
         'hold_request.long_wait',
-        'NOOP_True',
+        'HoldNotifyCheck',
         'SendEmail',
         '6 MONTHS',
         'request_time',
@@ -6630,17 +6736,21 @@ length of time.  If you would still like to receive these items,
 no action is required.
 
 [% FOR hold IN target %]
-    Title: [% hold.bib_rec.bib_record.simple_record.title %]
-    Author: [% hold.bib_rec.bib_record.simple_record.author %]
+    [%- copy_details = helpers.get_copy_bib_basics(hold.current_copy.id) -%]
+    Title: [% copy_details.title %]
+    Author: [% copy_details.author %]
 [% END %]
 $$
 );
 
 INSERT INTO action_trigger.environment (event_def, path)
     VALUES
-        (9, 'pickup_lib'),
-        (9, 'usr'),
-        (9, 'bib_rec.bib_record.simple_record');
+    (9, 'pickup_lib'),
+    (9, 'usr'),
+    (9, 'current_copy.call_number');
+
+INSERT INTO action_trigger.event_params (event_def, param, value)
+    VALUES (9, 'check_email_notify', 1);
 
 -- trigger data related to acq user requests
 
@@ -7355,15 +7465,6 @@ INSERT INTO config.metabib_field_index_norm_map (field,norm,params)
       WHERE i.func IN ('replace')
             AND m.id IN (19);
 
-INSERT INTO config.metabib_field_index_norm_map (field,norm,params)
-    SELECT  m.id,
-            i.id,
-            $$[" ",""]$$
-      FROM  config.metabib_field m,
-            config.index_normalizer i
-      WHERE i.func IN ('replace')
-            AND m.id IN (19);
-
 INSERT INTO config.metabib_field_index_norm_map (field,norm,pos)
     SELECT  m.id,
             i.id,
@@ -7416,18 +7517,21 @@ Dear [% user.family_name %], [% user.first_given_name %]
 As a reminder, the following items are due in 3 days.
 
 [% FOR circ IN target %]
-    Title: [% circ.target_copy.call_number.record.simple_record.title %] 
+    [%- copy_details = helpers.get_copy_bib_basics(circ.target_copy.id) -%]
+    Title: [% copy_details.title %]
+    Author: [% copy_details.author %]
     Barcode: [% circ.target_copy.barcode %] 
     Due: [% date.format(helpers.format_date(circ.due_date), '%Y-%m-%d') %]
     Item Cost: [% helpers.get_copy_price(circ.target_copy) %]
     Library: [% circ.circ_lib.name %]
     Library Phone: [% circ.circ_lib.phone %]
+
 [% END %]
 
 $$);
 
 INSERT INTO action_trigger.environment (event_def, path) VALUES 
-    (6, 'target_copy.call_number.record.simple_record'),
+    (6, 'target_copy.call_number'),
     (6, 'usr'),
     (6, 'circ_lib.billing_address');
 
@@ -8445,6 +8549,7 @@ INSERT INTO action_trigger.event_definition (
         cleanup_failure,
         group_field,
         granularity,
+        delay,
         template
     ) VALUES (
         31,
@@ -8458,22 +8563,42 @@ INSERT INTO action_trigger.event_definition (
         'DeleteTempBiblioBucket',
         'owner',
         NULL,
+        '00:00:00',
 $$
-[%- USE date -%]
 [%- SET user = target.0.owner -%]
 To: [%- params.recipient_email || user.email %]
 From: [%- params.sender_email || default_sender %]
 Subject: Bibliographic Records
 
-    [% FOR cbreb IN target %]
-    [% FOR cbrebi IN cbreb.items %]
-        Bib ID# [% cbrebi.target_biblio_record_entry.id %] ISBN: [% crebi.target_biblio_record_entry.simple_record.isbn %]
-        Title: [% cbrebi.target_biblio_record_entry.simple_record.title %]
-        Author: [% cbrebi.target_biblio_record_entry.simple_record.author %]
-        Publication Year: [% cbrebi.target_biblio_record_entry.simple_record.pubdate %]
+[% FOR cbreb IN target %]
+[% FOR item IN cbreb.items;
+    bre_id = item.target_biblio_record_entry;
 
-    [% END %]
-    [% END %]
+    bibxml = helpers.unapi_bre(bre_id, {flesh => '{mra}'});
+    FOR part IN bibxml.findnodes('//*[@tag="245"]/*[@code="a" or @code="b"]');
+        title = title _ part.textContent;
+    END;
+
+    author = bibxml.findnodes('//*[@tag="100"]/*[@code="a"]').textContent;
+    item_type = bibxml.findnodes('//*[local-name()="attributes"]/*[local-name()="field"][@name="item_type"]').getAttribute('coded-value');
+    publisher = bibxml.findnodes('//*[@tag="260"]/*[@code="b"]').textContent;
+    pubdate = bibxml.findnodes('//*[@tag="260"]/*[@code="c"]').textContent;
+    isbn = bibxml.findnodes('//*[@tag="020"]/*[@code="a"]').textContent;
+    issn = bibxml.findnodes('//*[@tag="022"]/*[@code="a"]').textContent;
+    upc = bibxml.findnodes('//*[@tag="024"]/*[@code="a"]').textContent;
+%]
+
+[% loop.count %]/[% loop.size %].  Bib ID# [% bre_id %] 
+[% IF isbn %]ISBN: [% isbn _ "\n" %][% END -%]
+[% IF issn %]ISSN: [% issn _ "\n" %][% END -%]
+[% IF upc  %]UPC:  [% upc _ "\n" %] [% END -%]
+Title: [% title %]
+Author: [% author %]
+Publication Info: [% publisher %] [% pubdate %]
+Item Type: [% item_type %]
+
+[% END %]
+[% END %]
 $$
     )
     ,(
@@ -8488,17 +8613,33 @@ $$
         'DeleteTempBiblioBucket',
         'owner',
         'print-on-demand',
+        '00:00:00',
 $$
-[%- USE date -%]
 <div>
     <style> li { padding: 8px; margin 5px; }</style>
     <ol>
     [% FOR cbreb IN target %]
-    [% FOR cbrebi IN cbreb.items %]
-        <li>Bib ID# [% cbrebi.target_biblio_record_entry.id %] ISBN: [% crebi.target_biblio_record_entry.simple_record.isbn %]<br />
-            Title: [% cbrebi.target_biblio_record_entry.simple_record.title %]<br />
-            Author: [% cbrebi.target_biblio_record_entry.simple_record.author %]<br />
-            Publication Year: [% cbrebi.target_biblio_record_entry.simple_record.pubdate %]
+    [% FOR item IN cbreb.items;
+        bre_id = item.target_biblio_record_entry;
+
+        bibxml = helpers.unapi_bre(bre_id, {flesh => '{mra}'});
+        FOR part IN bibxml.findnodes('//*[@tag="245"]/*[@code="a" or @code="b"]');
+            title = title _ part.textContent;
+        END;
+
+        author = bibxml.findnodes('//*[@tag="100"]/*[@code="a"]').textContent;
+        item_type = bibxml.findnodes('//*[local-name()="attributes"]/*[local-name()="field"][@name="item_type"]').getAttribute('coded-value');
+        publisher = bibxml.findnodes('//*[@tag="260"]/*[@code="b"]').textContent;
+        pubdate = bibxml.findnodes('//*[@tag="260"]/*[@code="c"]').textContent;
+        isbn = bibxml.findnodes('//*[@tag="020"]/*[@code="a"]').textContent;
+        %]
+
+        <li>
+            Bib ID# [% bre_id %] ISBN: [% isbn %]<br />
+            Title: [% title %]<br />
+            Author: [% author %]<br />
+            Publication Info: [% publisher %] [% pubdate %]<br/>
+            Item Type: [% item_type %]
         </li>
     [% END %]
     [% END %]
@@ -8514,20 +8655,7 @@ INSERT INTO action_trigger.environment (
     ) VALUES -- for fleshing cbreb objects
          ( 31, 'owner' )
         ,( 31, 'items' )
-        ,( 31, 'items.target_biblio_record_entry' )
-        ,( 31, 'items.target_biblio_record_entry.simple_record' )
-        ,( 31, 'items.target_biblio_record_entry.call_numbers' )
-        ,( 31, 'items.target_biblio_record_entry.fixed_fields' )
-        ,( 31, 'items.target_biblio_record_entry.notes' )
-        ,( 31, 'items.target_biblio_record_entry.full_record_entries' )
-        ,( 32, 'owner' )
         ,( 32, 'items' )
-        ,( 32, 'items.target_biblio_record_entry' )
-        ,( 32, 'items.target_biblio_record_entry.simple_record' )
-        ,( 32, 'items.target_biblio_record_entry.call_numbers' )
-        ,( 32, 'items.target_biblio_record_entry.fixed_fields' )
-        ,( 32, 'items.target_biblio_record_entry.notes' )
-        ,( 32, 'items.target_biblio_record_entry.full_record_entries' )
 ;
 
 INSERT INTO acq.invoice_item_type (code,name) VALUES ('TAX',oils_i18n_gettext('TAX', 'Tax', 'aiit', 'name'));
@@ -8654,6 +8782,20 @@ INSERT INTO config.global_flag (name, label, enabled)
         ),
         FALSE
     );
+
+INSERT INTO config.global_flag (name, label, value, enabled)
+    VALUES (
+        'opac.use_autosuggest',
+        oils_i18n_gettext(
+            'opac.use_autosuggest',
+            'OPAC: Show auto-completing suggestions dialog under basic search box (put ''opac_visible'' into the value field to limit suggestions to OPAC-visible items, or blank the field for a possible performance improvement)',
+            'cgf',
+            'label'
+        ),
+        'opac_visible',
+        TRUE
+    );
+
 
 INSERT INTO config.usr_setting_type (name,opac_visible,label,description,datatype)
     VALUES (
@@ -9127,6 +9269,8 @@ INSERT INTO vandelay.import_error ( code, description ) VALUES (
     'import.item.invalid.copy_number', oils_i18n_gettext('import.item.invalid.copy_number', 'Invalid value for "copy_number"', 'vie', 'description') );
 INSERT INTO vandelay.import_error ( code, description ) VALUES ( 
     'import.item.invalid.circ_as_type', oils_i18n_gettext('import.item.invalid.circ_as_type', 'Invalid value for "circ_as_type"', 'vie', 'description') );
+INSERT INTO vandelay.import_error ( code, description ) VALUES ( 
+    'import.record.perm_failure', oils_i18n_gettext('import.record.perm_failure', 'Perm failure creating a record', 'vie', 'description') );
 
 -- Event def for email notice for hold cancelled due to lack of target -----
 
@@ -9158,6 +9302,9 @@ INSERT INTO action_trigger.environment (event_def, path) VALUES
     (38, 'usr'),
     (38, 'pickup_lib'),
     (38, 'bib_rec.bib_record.simple_record');
+
+INSERT INTO action_trigger.event_params (event_def, param, value)
+    VALUES (38, 'check_email_notify', 1);
 
 ----------------------------------------------------------------
 -- Seed data for queued record/item exports
@@ -10008,7 +10155,6 @@ INSERT INTO config.usr_setting_type (name,grp,opac_visible,label,description,dat
     ),
     'string'
 );
-
 SELECT setval( 'config.sms_carrier_id_seq', 1000 );
 INSERT INTO config.sms_carrier VALUES
 
@@ -11205,6 +11351,9 @@ INSERT INTO action_trigger.environment (
     'pickup_lib.billing_address'
 );
 
+INSERT INTO action_trigger.event_params (event_def, param, value)
+    VALUES (currval('action_trigger.event_definition_id_seq'), 'check_sms_notify', 1);
+
 INSERT INTO action_trigger.hook(
     key,
     core_type,
@@ -11272,5 +11421,173 @@ INSERT INTO action_trigger.environment (
     currval('action_trigger.event_definition_id_seq'),
     'owning_lib.billing_address'
 );
+
+INSERT INTO vandelay.merge_profile (owner, name, replace_spec) 
+    VALUES (1, 'Match-Only Merge', '901c');
+
+INSERT INTO vandelay.merge_profile (owner, name, preserve_spec) 
+    VALUES (1, 'Full Overlay', '901c');
+
+-- user activity seed data --
+
+INSERT INTO config.usr_activity_type (id, ewho, ewhat, ehow, egroup, label) VALUES
+
+     -- authen/authz actions
+     -- note: "opensrf" is the default ingress/ehow
+     (1,  NULL, 'login',  'opensrf',      'authen', oils_i18n_gettext(1 , 'Login via opensrf', 'cuat', 'label'))
+    ,(2,  NULL, 'login',  'srfsh',        'authen', oils_i18n_gettext(2 , 'Login via srfsh', 'cuat', 'label'))
+    ,(3,  NULL, 'login',  'gateway-v1',   'authen', oils_i18n_gettext(3 , 'Login via gateway-v1', 'cuat', 'label'))
+    ,(4,  NULL, 'login',  'translator-v1','authen', oils_i18n_gettext(4 , 'Login via translator-v1', 'cuat', 'label'))
+    ,(5,  NULL, 'login',  'xmlrpc',       'authen', oils_i18n_gettext(5 , 'Login via xmlrpc', 'cuat', 'label'))
+    ,(6,  NULL, 'login',  'remoteauth',   'authen', oils_i18n_gettext(6 , 'Login via remoteauth', 'cuat', 'label'))
+    ,(7,  NULL, 'login',  'sip2',         'authen', oils_i18n_gettext(7 , 'SIP2 Proxy Login', 'cuat', 'label'))
+    ,(8,  NULL, 'login',  'apache',       'authen', oils_i18n_gettext(8 , 'Login via Apache module', 'cuat', 'label'))
+
+    ,(9,  NULL, 'verify', 'opensrf',      'authz',  oils_i18n_gettext(9 , 'Verification via opensrf', 'cuat', 'label'))
+    ,(10, NULL, 'verify', 'srfsh',        'authz',  oils_i18n_gettext(10, 'Verification via srfsh', 'cuat', 'label'))
+    ,(11, NULL, 'verify', 'gateway-v1',   'authz',  oils_i18n_gettext(11, 'Verification via gateway-v1', 'cuat', 'label'))
+    ,(12, NULL, 'verify', 'translator-v1','authz',  oils_i18n_gettext(12, 'Verification via translator-v1', 'cuat', 'label'))
+    ,(13, NULL, 'verify', 'xmlrpc',       'authz',  oils_i18n_gettext(13, 'Verification via xmlrpc', 'cuat', 'label'))
+    ,(14, NULL, 'verify', 'remoteauth',   'authz',  oils_i18n_gettext(14, 'Verification via remoteauth', 'cuat', 'label'))
+    ,(15, NULL, 'verify', 'sip2',         'authz',  oils_i18n_gettext(15, 'SIP2 User Verification', 'cuat', 'label'))
+
+     -- authen/authz actions w/ known uses of "who"
+    ,(16, 'opac',        'login',  'gateway-v1',   'authen', oils_i18n_gettext(16, 'OPAC Login (jspac)', 'cuat', 'label'))
+    ,(17, 'opac',        'login',  'apache',       'authen', oils_i18n_gettext(17, 'OPAC Login (tpac)', 'cuat', 'label'))
+    ,(18, 'staffclient', 'login',  'gateway-v1',   'authen', oils_i18n_gettext(18, 'Staff Client Login', 'cuat', 'label'))
+    ,(19, 'selfcheck',   'login',  'translator-v1','authen', oils_i18n_gettext(19, 'Self-Check Proxy Login', 'cuat', 'label'))
+    ,(20, 'ums',         'login',  'xmlrpc',       'authen', oils_i18n_gettext(20, 'Unique Mgt Login', 'cuat', 'label'))
+    ,(21, 'authproxy',   'login',  'apache',       'authen', oils_i18n_gettext(21, 'Apache Auth Proxy Login', 'cuat', 'label'))
+    ,(22, 'libraryelf',  'login',  'xmlrpc',       'authz',  oils_i18n_gettext(22, 'LibraryElf Login', 'cuat', 'label'))
+
+    ,(23, 'selfcheck',   'verify', 'translator-v1','authz',  oils_i18n_gettext(23, 'Self-Check User Verification', 'cuat', 'label'))
+    ,(24, 'ezproxy',     'verify', 'remoteauth',   'authz',  oils_i18n_gettext(24, 'EZProxy Verification', 'cuat', 'label'))
+    -- ...
+    ;
+
+-- reserve the first 1000 slots
+SELECT SETVAL('config.usr_activity_type_id_seq'::TEXT, 1000);
+
+INSERT INTO config.org_unit_setting_type 
+    (name, label, description, grp, datatype) 
+    VALUES (
+        'circ.fines.charge_when_closed',
+         oils_i18n_gettext(
+            'circ.fines.charge_when_closed',
+            'Charge fines on overdue circulations when closed',
+            'coust', 
+            'label'
+        ),
+        oils_i18n_gettext(
+            'circ.fines.charge_when_closed',
+            'Normally, fines are not charged when a library is closed.  When set to True, fines will be charged during scheduled closings and normal weekly closed days.',
+            'coust', 
+            'description'
+        ),
+        'circ',
+        'bool'
+    );
+
+INSERT INTO config.org_unit_setting_type 
+    (name, label, description, grp, datatype) 
+    VALUES (
+        'circ.patron.usr_activity_retrieve.max',
+         oils_i18n_gettext(
+            'circ.patron.usr_activity_retrieve.max',
+            'Max user activity entries to retrieve (staff client)',
+            'coust', 
+            'label'
+        ),
+        oils_i18n_gettext(
+            'circ.patron.usr_activity_retrieve.max',
+            'Sets the maxinum number of recent user activity entries to retrieve for display in the staff client.  0 means show none, -1 means show all.  Default is 1.',
+            'coust', 
+            'description'
+        ),
+        'gui',
+        'integer'
+    );
+-- circ export csv export --
+
+INSERT INTO action_trigger.hook (key, core_type, description, passive)
+VALUES (
+    'circ.format.history.csv',
+    'circ',
+    oils_i18n_gettext(
+        'circ.format.history.csv',
+        'Produce CSV of circulation history',
+        'ath',
+        'description'
+    ),
+    FALSE
+);
+
+INSERT INTO action_trigger.event_definition (
+    active, owner, name, hook, reactor, validator, group_field, template) 
+VALUES (
+    TRUE, 1, 'Circ History CSV', 'circ.format.history.csv', 'ProcessTemplate', 'NOOP_True', 'usr',
+$$
+Title,Author,Call Number,Barcode,Format
+[%-
+FOR circ IN target;
+    bibxml = helpers.unapi_bre(circ.target_copy.call_number.record, {flesh => '{mra}'});
+    title = "";
+    FOR part IN bibxml.findnodes('//*[@tag="245"]/*[@code="a" or @code="b"]');
+        title = title _ part.textContent;
+    END;
+    author = bibxml.findnodes('//*[@tag="100"]/*[@code="a"]').textContent;
+    item_type = bibxml.findnodes('//*[local-name()="attributes"]/*[local-name()="field"][@name="item_type"]').getAttribute('coded-value') %]
+
+    [%- helpers.csv_datum(title) -%],
+    [%- helpers.csv_datum(author) -%],
+    [%- helpers.csv_datum(circ.target_copy.call_number.label) -%],
+    [%- helpers.csv_datum(circ.target_copy.barcode) -%],
+    [%- helpers.csv_datum(item_type) %]
+[%- END -%]
+$$
+);
+
+INSERT INTO action_trigger.environment (event_def, path)
+    VALUES (
+        currval('action_trigger.event_definition_id_seq'),
+        'target_copy.call_number'
+    );
+
+INSERT INTO actor.toolbar(org,label,layout) VALUES
+    ( 1, 'circ', '["circ_checkout","circ_checkin","toolbarseparator.1","search_opac","copy_status","toolbarseparator.2","patron_search","patron_register","toolbarspacer.3","hotkeys_toggle"]' ),
+    ( 1, 'cat', '["circ_checkin","toolbarseparator.1","search_opac","copy_status","toolbarseparator.2","create_marc","authority_manage","retrieve_last_record","toolbarspacer.3","hotkeys_toggle"]' );
+
+INSERT INTO config.global_flag (name, enabled, label) 
+    VALUES (
+        'opac.org_unit.non_inherited_visibility',
+        FALSE,
+        oils_i18n_gettext(
+            'opac.org_unit.non_inherited_visibility',
+            'Org Units Do Not Inherit Visibility',
+            'cgf',
+            'label'
+        )
+    );
+
+INSERT INTO config.org_unit_setting_type ( name, label, description, datatype, grp )
+    VALUES (
+        'ui.hide_copy_editor_fields',
+        oils_i18n_gettext(
+            'ui.hide_copy_editor_fields',
+            'GUI: Hide these fields within the Item Attribute Editor',
+            'coust',
+            'label'
+        ),
+        oils_i18n_gettext(
+            'ui.hide_copy_editor_fields',
+            'This setting may be best maintained with the dedicated configuration'
+            || ' interface within the Item Attribute Editor.  However, here it'
+            || ' shows up as comma separated list of field identifiers to hide.',
+            'coust',
+            'description'
+        ),
+        'array',
+        'gui'
+    );
 
 

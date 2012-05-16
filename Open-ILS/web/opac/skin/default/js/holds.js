@@ -469,6 +469,11 @@ function __holdsDrawWindow() {
 	
 	}
 
+	var pref = holdArgs.recipient.prefs[PREF_DEF_PICKUP];
+	if(pref) {
+		setSelector(selector, pref);
+	}
+
 	/*
 	if(isXUL()) {
 		var dsel = $('holds_depth_selector');
@@ -551,7 +556,7 @@ function __holdsDrawWindow() {
 	var mods_formats = rec.types_of_resource();
 	var formats;
 
-	if(holdArgs.recordDescriptors)
+	if (holdArgs.recordDescriptors && holdArgs.recordDescriptors.length)
 		formats = holdArgs.recordDescriptors[0].item_type();
 
 	if( holdArgs.type == 'T' ) {
@@ -608,10 +613,12 @@ function __holdsDrawWindow() {
 	}
 
 
-	$('holds_phone').value = holdArgs.recipient.day_phone();
+	$('holds_phone').value = (holdArgs.recipient.day_phone() ? holdArgs.recipient.day_phone() : '');
+	var pref = holdArgs.recipient.prefs[PREF_DEF_PHONE];
+	if(pref) $('holds_phone').value = pref;
 	appendClear( $('holds_email'), text(holdArgs.recipient.email()));
 
-	var pref = holdArgs.recipient.prefs[PREF_HOLD_NOTIFY];
+	pref = holdArgs.recipient.prefs[PREF_HOLD_NOTIFY];
 
 	if(pref) {
 		if( ! pref.match(/email/i) ) {
@@ -1022,40 +1029,49 @@ function holdHandleCreateResponse(r, recurse) {
 
 	if(!recurse) {
 		var res = r.getResultObject();
-        var age_protect_override = false;;
+        var place_anyway = false;
 		if(checkILSEvent(res) || res.success != 1) {
-            if(res.success != 1 && res.age_protected_copy == 1) {
-                // There is at least one copy that *could* fill the hold, if it were not age-protected.
-                if( confirm($('hold_age_protected_override').innerHTML) ) {
-                    age_protect_override = true;
-                } else {
-    		    	swapCanvas($('holds_box'));
-	    		    return;
+            if(res.success != 1) {
+                if(res.age_protected_copy == 1) {
+                    // There is at least one copy that *could* fill the hold, if it were not age-protected.
+                    if( confirm($('hold_age_protected_override').innerHTML) ) {
+                        place_anyway = true;
+                    } else {
+    		        	swapCanvas($('holds_box'));
+	    		        return;
+                    }
+                } else if(res.place_unfillable == 1) {
+                    if( confirm($('hold_place_unfillable_override').innerHTML) ) {
+                        place_anyway = true;
+                    } else {
+    		        	swapCanvas($('holds_box'));
+	    		        return;
+                    }
                 }
             }
-            if(!age_protect_override) {
-			if(res.success != 1) {
+            if(!place_anyway) {
+    			if(res.success != 1) {
 
-                if(!holdArgs.partsSuggestionMade && holdArgs.recordParts && 
-                        holdArgs.recordParts.length && holdArgs.type == 'T') {
-                    // T holds on records that have parts are OK, but if the record has no non-part
-                    // copies, the hold will ultimately fail.  Suggest selecting a part to the user.
-                    addCSSClass($('holds_parts_selector'), 'parts-warning');
-                    holdArgs.partsSuggestionMade = true;
-                    alert($('hold_has_parts').innerHTML);
-                } else {
-				    alert($('hold_not_allowed').innerHTML);
-                }
-			} else {
-				if( res.textcode == 'PATRON_BARRED' ) {
-					alertId('hold_failed_patron_barred');
-			} else {
-					alert($('hold_not_allowed').innerHTML);
-				}
-			}
-			swapCanvas($('holds_box'));
-			return;
-		}
+                    if(!holdArgs.partsSuggestionMade && holdArgs.recordParts && 
+                            holdArgs.recordParts.length && holdArgs.type == 'T') {
+                        // T holds on records that have parts are OK, but if the record has no non-part
+                        // copies, the hold will ultimately fail.  Suggest selecting a part to the user.
+                        addCSSClass($('holds_parts_selector'), 'parts-warning');
+                        holdArgs.partsSuggestionMade = true;
+                        alert($('hold_has_parts').innerHTML);
+                    } else {
+			    	    alert($('hold_not_allowed').innerHTML);
+                    }
+    			} else {
+	    			if( res.textcode == 'PATRON_BARRED' ) {
+		    			alertId('hold_failed_patron_barred');
+			    } else {
+				    	alert($('hold_not_allowed').innerHTML);
+    				}
+	    		}
+		    	swapCanvas($('holds_box'));
+			    return;
+            }
 		}
         r._hold.selection_depth(res.depth);
 	}	

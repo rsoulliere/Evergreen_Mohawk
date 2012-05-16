@@ -44,8 +44,8 @@ CREATE OR REPLACE FUNCTION search.query_parser_fts (
     param_check     INT,
     param_limit     INT,
     metarecord      BOOL,
-    staff           BOOL
- 
+    staff           BOOL,
+    param_pref_ou   INT DEFAULT NULL
 ) RETURNS SETOF search.search_result AS $func$
 DECLARE
 
@@ -98,6 +98,11 @@ BEGIN
 
     ELSIF param_search_ou = 0 THEN
         -- reserved for user lassos (ou_buckets/type='lasso') with ID passed in depth ... hack? sure.
+    END IF;
+
+    IF param_pref_ou IS NOT NULL THEN
+        SELECT array_accum(distinct id) INTO tmp_int_list FROM actor.org_unit_ancestors(param_pref_ou);
+        luri_org_list := luri_org_list || tmp_int_list;
     END IF;
 
     OPEN core_cursor FOR EXECUTE param_query;

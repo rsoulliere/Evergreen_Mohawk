@@ -4,14 +4,6 @@
     prefs_page = 'notify' %]
 
 <form method='POST'>
-
-    <div style="float:right;width:65px;">
-        <input type='submit' 
-            value="[% l('Save') %]"
-            alt="[% l('Save') %]"
-            class="opac-button" />
-    </div>
-
     [% setting = 'opac.hold_notify' %]
     <input name='[% setting %]' type="hidden"
         [% IF ctx.user_setting_map.$setting; %] value='[% ctx.user_setting_map.$setting | html %]' [% END %]/>
@@ -51,7 +43,7 @@
                         [% IF ctx.user_setting_map.$setting; %] value='[% ctx.user_setting_map.$setting | html %]' [% END %]/>
                 </td>
             </tr>
-            [% IF ctx.get_org_setting(CGI.param('loc') OR ctx.aou_tree.id, 'sms.enable') == 1 %]
+            [% IF ctx.get_org_setting(ctx.search_ou, 'sms.enable') == 1 %]
             <tr>
                 <td>[% l('Notify by Text by default when a hold is ready for pickup?') %]</td>
                 <td>
@@ -98,6 +90,7 @@
             [% END %]
         </tbody>
     </table>
+    <input type='submit' value="[% l('Save') %]" alt="[% l('Save') %]" class="opac-button" />
 </form>
 [% END %]
 

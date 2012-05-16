@@ -18,11 +18,12 @@
             <input type="radio" id="hold_usr_is_requestor_not"
                 onchange="staff_hold_usr_input_disabler(this);"
                 name="hold_usr_is_requestor" value="0"
-                [% IF ctx.patron_recipient; ' checked="checked"'; END %] />
+                />
             <label for="hold_usr_is_requestor_not">
                 [% l("Place hold for patron by barcode:") %]
             </label>
-            <input type="text" name="hold_usr" id="hold_usr_input" value="[% ctx.patron_recipient.card.barcode | html %]" /><br />[%# XXX multi-barcode users? %]
+            <input type="text" name="hold_usr" id="hold_usr_input" onchange="staff_hold_usr_barcode_changed();" /><br />
+            <input type="hidden" id="staff_barcode" value="[% ctx.staff_recipient.card.barcode | html %]"/>
             <span>
                 <input type="radio" id="hold_usr_is_requestor"
                     onchange="staff_hold_usr_input_disabler(this);"
@@ -68,7 +69,7 @@
         <p>
             [% l('Pickup location:') %]
             [% PROCESS "opac/parts/org_selector.tt2";
-                PROCESS build_org_selector name='pickup_lib' value=ctx.default_pickup_lib id='pickup_lib' can_have_vols_only=1 %]
+                INCLUDE build_org_selector name='pickup_lib' value=ctx.default_pickup_lib id='pickup_lib' can_have_vols_only=1 %]
         </p>
         <p>
             [% l('Notify when hold is ready for pickup?') %]
@@ -81,9 +82,10 @@
                     [% l('Yes, by Phone') %]<br/>
                 <blockquote>
                     [% l('Phone Number:') %]<input type="text" name="phone_notify" [% setting = 'opac.default_phone';
-                    IF ctx.user_setting_map.$setting; %] value='[% ctx.user_setting_map.$setting | html %]' [% END %]/>
+                    IF ctx.user_setting_map.$setting; %] value='[% ctx.user_setting_map.$setting | html %]'
+                    [%- ELSIF ctx.user.day_phone; %] value='[% ctx.user.day_phone | html %]' [% END %]/>
                 </blockquote>
-                [% IF ctx.get_org_setting(CGI.param('loc') OR ctx.aou_tree.id, 'sms.enable') == 1 %]
+                [% IF ctx.get_org_setting(ctx.search_ou, 'sms.enable') == 1 %]
                 <input type="checkbox" name="sms_notify_checkbox"
                     [% IF ctx.default_sms_notify %]checked="checked"[% END %]/>
                     [% l('Yes, by Text Messaging') %]<br/>
@@ -93,11 +95,6 @@
                 </blockquote>
                 [% END %]
             </blockquote>
-        </p>
-        <p>
-            [% |l %]If you use the Traveling Library Center (TLC) and ABC Express
-            services, please select "Outreach" to have the item delivered
-            during your scheduled visit.[% END %]
         </p>
         <input type="submit" name="submit" value="[% l('Submit') %]" title="[% l('Submit') %]"
             alt="[% l('Submit') %]" class="opac-button" />

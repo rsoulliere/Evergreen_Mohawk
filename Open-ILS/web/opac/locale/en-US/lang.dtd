@@ -77,6 +77,11 @@
 <!ENTITY common.textbox.delete "Delete">
 <!ENTITY common.textbox.select_all "Select All">
 
+<!ENTITY common.sort.first.ascending "Sort First (Ascending)">
+<!ENTITY common.sort.first.descending "Sort First (Descending)">
+<!ENTITY common.sort.next.ascending "Sort Next (Ascending)">
+<!ENTITY common.sort.next.descending "Sort Next (Descending)">
+
 <!ENTITY ilsevent.1000 "Login failed.  The username or password entered was incorrect.">
 <!ENTITY ilsevent.1001 "Login session has timed out or does not exist">
 <!ENTITY ilsevent.1002 "User was not found in the database">
@@ -190,6 +195,26 @@
 <!ENTITY staff.admin.survey.save_question.label "Save this Question">
 <!ENTITY staff.admin.survey.staff_client.label "Staff Client:">
 <!ENTITY staff.admin.survey.start.label "Start:">
+<!ENTITY staff.admin.toolbar.new_toolbar.label "New Toolbar">
+<!ENTITY staff.admin.toolbar.new_toolbar.accesskey "N">
+<!ENTITY staff.admin.toolbar.delete_toolbar.label "Delete Toolbar">
+<!ENTITY staff.admin.toolbar.delete_toolbar.accesskey "">
+<!ENTITY staff.admin.toolbar.add_toolbar_button.label "--&gt;">
+<!ENTITY staff.admin.toolbar.add_toolbar_button.accesskey "a">
+<!ENTITY staff.admin.toolbar.remove_toolbar_button.label "&lt;--">
+<!ENTITY staff.admin.toolbar.remove_toolbar_button.accesskey "r">
+<!ENTITY staff.admin.toolbar.move_toolbar_button_up.label "Up">
+<!ENTITY staff.admin.toolbar.move_toolbar_button_up.accesskey "U">
+<!ENTITY staff.admin.toolbar.move_toolbar_button_down.label "Down">
+<!ENTITY staff.admin.toolbar.move_toolbar_button_down.accesskey "D">
+<!ENTITY staff.admin.toolbar.permission_context.label "Permission Context">
+<!ENTITY staff.admin.toolbar.permission_context.accesskey "P">
+<!ENTITY staff.admin.toolbar.cancel_changes.label "Cancel Changes">
+<!ENTITY staff.admin.toolbar.cancel_changes.accesskey "C">
+<!ENTITY staff.admin.toolbar.save_toolbar.label "Save Toolbar">
+<!ENTITY staff.admin.toolbar.save_toolbar.accesskey "S">
+<!ENTITY staff.admin.toolbar.header.available "Available">
+<!ENTITY staff.admin.toolbar.header.selected "Selected">
 <!ENTITY staff.admin.work_log.list1.header "Most Recently Logged Staff Actions">
 <!ENTITY staff.admin.work_log.list2.header "Most Recently Affected Patrons for Logged Staff Actions and Last Action for each">
 <!ENTITY staff.admin.work_log.refresh_btn.label "Refresh">
@@ -311,6 +336,8 @@
 <!ENTITY staff.cat.opac.menu.label "Actions for this Record">
 <!ENTITY staff.cat.opac.opac_view.accesskey "O">
 <!ENTITY staff.cat.opac.opac_view.label "OPAC View">
+<!ENTITY staff.cat.opac.record_back_to_results.accesskey "H">
+<!ENTITY staff.cat.opac.record_back_to_results.label "Search Results">
 <!ENTITY staff.cat.opac.record_end.accesskey "E">
 <!ENTITY staff.cat.opac.record_end.label "End">
 <!ENTITY staff.cat.opac.record_next.accesskey "N">
@@ -662,9 +689,6 @@
 <!ENTITY staff.main.auth.status "Status">
 <!ENTITY staff.main.auth.version "Version">
 <!ENTITY staff.main.auth.workstation "Workstation">
-<!ENTITY staff.main.button_bar.none "None">
-<!ENTITY staff.main.button_bar.circ "Circulation">
-<!ENTITY staff.main.button_bar.cat "Cataloging">
 <!ENTITY staff.main.button_bar.check_out.label "Check Out">
 <!ENTITY staff.main.button_bar.check_out.accesskey "">
 <!ENTITY staff.main.button_bar.check_in.label "Check In">
@@ -684,8 +708,6 @@
 <!ENTITY staff.main.menu.acquisitions.accesskey "q">
 <!ENTITY staff.main.menu.acquisitions.label "Acquisitions">
 <!ENTITY staff.main.menu.admin.accesskey "-">
-<!ENTITY staff.main.menu.admin.browse_holds.accesskey "B">
-<!ENTITY staff.main.menu.admin.browse_holds.label "Browse Unfulfilled Holds for this Pickup Lib">
 <!ENTITY staff.main.menu.admin.change_session.label "Operator Change: New">
 <!ENTITY staff.main.menu.admin.clear_cache.accesskey "3">
 <!ENTITY staff.main.menu.admin.clear_cache.label "Clear Cache">
@@ -716,6 +738,8 @@
 <!ENTITY staff.main.menu.admin.local_admin.patrons_due_refunds.label "Patrons with Negative Balances">
 <!ENTITY staff.main.menu.admin.local_admin.patrons_due_refunds.accesskey "N">
 <!ENTITY staff.main.menu.admin.local_admin.address_alert.label "Address Alerts">
+<!ENTITY staff.main.menu.admin.local_admin.circ_limit_set.label "Circulation Limit Sets">
+<!ENTITY staff.main.menu.admin.local_admin.copy_location_group.label "Copy Location Groups">
 
 <!ENTITY staff.main.menu.admin.server_admin.label "Server Administration">
 <!ENTITY staff.main.menu.admin.server_admin.conify.org_unit_type.label "Organization Types">
@@ -745,7 +769,10 @@
 <!ENTITY staff.main.menu.admin.server_admin.conify.config_weight_assoc "Weights Association">
 <!ENTITY staff.main.menu.admin.server_admin.conify.config_actor_sip_fields "Actor Stat Cat Sip Fields">
 <!ENTITY staff.main.menu.admin.server_admin.conify.config_asset_sip_fields "Asset Stat Cat Sip Fields">
+<!ENTITY staff.main.menu.admin.server_admin.conify.config_usr_activity_type "User Activity Types">
+<!ENTITY staff.main.menu.admin.server_admin.conify.actor.org_unit_custom_tree "Custom Org Unit Trees">
 <!ENTITY staff.main.menu.admin.server_admin.conify.global_flag.label "Global Flags">
+<!ENTITY staff.main.menu.admin.server_admin.conify.circulation_limit_group.label "Circulation Limit Groups">
 
 <!ENTITY staff.main.menu.admin.server_admin.acq.label "Acquisitions">
 <!ENTITY staff.main.menu.admin.server_admin.acq.accesskey "A">
@@ -842,6 +869,8 @@
 <!ENTITY staff.main.menu.admin.client.hotkeys.clearworkstation.accesskey "">
 <!ENTITY staff.main.menu.admin.client.toolbars "Toolbars">
 <!ENTITY staff.main.menu.admin.client.toolbars.current "Current">
+<!ENTITY staff.main.menu.admin.client.toolbars.config.label "Configure Toolbars">
+<!ENTITY staff.main.menu.admin.client.toolbars.config.accesskey "">
 <!ENTITY staff.main.menu.admin.client.toolbars.setworkstation.label "Set Workstation Default to Current">
 <!ENTITY staff.main.menu.admin.client.toolbars.setworkstation.accesskey "">
 <!ENTITY staff.main.menu.admin.client.toolbars.clearworkstation.label "Clear Workstation Default">
@@ -1701,10 +1730,16 @@
 <!ENTITY staff.serial.manage_dists.actions.cmd_add_sstr.label "Add Stream">
 <!ENTITY staff.serial.manage_dists.actions.cmd_delete_sstr.label "Delete Stream">
 <!ENTITY staff.serial.manage_items.actions.cmd_edit_items.label "Edit Item Attributes">
-<!ENTITY staff.serial.manage_items.actions.cmd_edit_items.access_key "E">
+<!ENTITY staff.serial.manage_items.actions.cmd_edit_items.accesskey "E">
 <!ENTITY staff.serial.manage_items.actions.cmd_delete_items.label "Delete Items">
-<!ENTITY staff.serial.manage_items.actions.cmd_delete_items.access_key "D">
+<!ENTITY staff.serial.manage_items.actions.cmd_delete_items.accesskey "D">
 <!ENTITY staff.serial.manage_items.actions.cmd_reset_items.label "Reset Items to Expected">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_sdist_notes.label "View Dist. Notes">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_sdist_notes.accesskey "T">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_sitem_notes.label "View Item Notes">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_sitem_notes.accesskey "I">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_ssub_notes.label "View Sub. Notes">
+<!ENTITY staff.serial.manage_items.actions.cmd_view_ssub_notes.accesskey "S">
 <!ENTITY staff.serial.manage_items.workarea_showing "Showing: ">
 <!ENTITY staff.serial.manage_items.workarea_current_unit "Current Working Unit: ">
 <!ENTITY staff.serial.manage_items.workarea_recently_received "Recently Received">
@@ -2160,6 +2195,7 @@
 <!ENTITY staff.server.admin.stat_cat.owning_library "Owning Library: ">
 <!ENTITY staff.server.admin.stat_cat.opac_visibility "OPAC Visibility: ">
 <!ENTITY staff.server.admin.stat_cat.required "Required: ">
+<!ENTITY staff.server.admin.stat_cat.allow_freetext "Allow Free Text: ">
 <!ENTITY staff.server.admin.stat_cat.usr_summary "Show in Summary: ">
 <!ENTITY staff.server.admin.stat_cat.on "On">
 <!ENTITY staff.server.admin.stat_cat.off "Off">
@@ -2177,9 +2213,11 @@
 <!ENTITY staff.server.admin.stat_cat.owning_library.label "Owning Library">
 <!ENTITY staff.server.admin.stat_cat.opac_visibility.label "OPAC Visibility">
 <!ENTITY staff.server.admin.stat_cat.required.label "Required">
+<!ENTITY staff.server.admin.stat_cat.allow_freetext.label "Allow Free Text">
 <!ENTITY staff.server.admin.stat_cat.usr_summary.label "Show in Summary">
 <!ENTITY staff.server.admin.stat_cat.entries.label "Entries">
 <!ENTITY staff.server.admin.stat_cat.add_entry "Add Entry">
+<!ENTITY staff.server.admin.stat_cat.set_default_entry "Default entry for">
 <!ENTITY staff.server.admin.stat_cat.edit "Edit">
 <!ENTITY staff.server.admin.stat_cat.none "(none)">
 <!ENTITY staff.server.admin.stat_cat.add.label "Add">
@@ -2190,7 +2228,7 @@
 <!ENTITY staff.server.admin.stat_cat.edit_delete "Delete Statistical Category">
 <!ENTITY staff.server.admin.stat_cat.cancel "Cancel">
 <!ENTITY staff.server.admin.stat_cat.edit_entry_owner "Owned By ">
-<!ENTITY staff.server.admin.stat_cat.edit_entry_name_submit "Update Entry Value">
+<!ENTITY staff.server.admin.stat_cat.edit_entry_submit "Update Entry Value">
 <!ENTITY staff.server.admin.stat_cat.edit_entry_delete "Delete Entry">
 <!ENTITY staff.server.admin.stat_cat.new_entry_name "Enter the value of the new entry: ">
 <!ENTITY staff.server.admin.stat_cat.new_entry_create "Create new entry">
@@ -2745,6 +2783,8 @@
 <!ENTITY staff.cat.copy_editor.save.accesskey "M">
 <!ENTITY staff.cat.copy_editor.cancel.label "Close">
 <!ENTITY staff.cat.copy_editor.cancel.accesskey "C">
+<!ENTITY staff.cat.copy_editor.hide_fields.label "Hide Fields">
+<!ENTITY staff.cat.copy_editor.hide_fields.accesskey "">
 <!ENTITY staff.cat.copy_summary.label "Item Summary">
 <!ENTITY staff.cat.copy_summary.barcode.label "Barcode:">
 <!ENTITY staff.cat.copy_summary.location.label "Location:">

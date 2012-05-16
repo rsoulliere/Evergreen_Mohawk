@@ -158,10 +158,10 @@ g.render_prefix_menu = function(vol_idx) {
     var menulist = cat.util.render_cn_prefix_menu(
         [ org.id() ],
         [],
-            typeof g.volumes[vol_idx].prefix() == 'object'
-                ? g.volumes[vol_idx].prefix().id()
-                : g.volumes[vol_idx].prefix()
-        );
+        typeof g.volumes[vol_idx].prefix() == 'object'
+            ? g.volumes[vol_idx].prefix().id()
+            : g.volumes[vol_idx].prefix()
+    );
 
     menulist.addEventListener(
         'command',
@@ -183,10 +183,10 @@ g.render_suffix_menu = function(vol_idx) {
     var menulist = cat.util.render_cn_suffix_menu(
         [ org.id() ],
         [],
-            typeof g.volumes[vol_idx].suffix() == 'object'
-                ? g.volumes[vol_idx].suffix().id()
-                : g.volumes[vol_idx].suffix()
-        );
+        typeof g.volumes[vol_idx].suffix() == 'object'
+            ? g.volumes[vol_idx].suffix().id()
+            : g.volumes[vol_idx].suffix()
+    );
 
     menulist.addEventListener(
         'command',
@@ -202,10 +202,10 @@ g.render_suffix_menu = function(vol_idx) {
 g.list_classes = function() {
     var hbox = $('batch_class');
     var ml = cat.util.render_cn_class_menu(
-                    [
+        [
             [ '<No Change>', false ]
-                    ]
-            );
+        ]
+    );
     ml.setAttribute('id','batch_class_menulist');
     hbox.appendChild(ml);
 }

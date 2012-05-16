@@ -61,8 +61,8 @@ if ($parallel == 1) {
     while ( my $h = $r->recv ) {
         die $r->failed->stringify . "\n" if $r->failed;
         if (my $hold = $h->content) {
-        $multi_targeter->request( 'open-ils.storage.action.hold_request.copy_targeter', '', $hold->[0], $hold->[1]);
-    }
+            $multi_targeter->request( 'open-ils.storage.action.hold_request.copy_targeter', '', $hold->[0], $hold->[1]);
+        }
     }
 
     $storage->disconnect();

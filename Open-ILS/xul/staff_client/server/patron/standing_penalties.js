@@ -52,7 +52,6 @@ function init_list() {
         list.init( 
             {
                 'columns' : patron.util.ausp_columns({}),
-                'map_row_to_columns' : patron.util.std_map_row_to_columns(),
                 'retrieve_row' : retrieve_row,
                 'on_select' : generate_handle_selection(list)
             } 
@@ -71,7 +70,6 @@ function init_archived_list() {
         archived_list.init( 
             {
                 'columns' : patron.util.ausp_columns({}),
-                'map_row_to_columns' : patron.util.std_map_row_to_columns(),
                 'retrieve_row' : retrieve_row, // We're getting fleshed objects for now, but if we move to just ausp.id's, then we'll need to put a per-id fetcher in here
                 'on_select' : generate_handle_selection(archived_list)
             } 
@@ -85,7 +83,7 @@ function init_archived_list() {
 
 
 function retrieve_row (params) { // callback function for fleshing rows in a list
-    params.row_node.setAttribute('retrieve_id',params.row.my.ausp.id()); 
+    params.treeitem_node.setAttribute('retrieve_id',params.row.my.ausp.id()); 
     params.on_retrieve(params.row); 
     return params.row; 
 }
@@ -255,7 +253,7 @@ function generate_penalty_remove_function(id) {
             if (typeof req.ilsevent != 'undefined' || String(req) != '1') {
                 error.standard_unexpected_error_alert(patronStrings.getFormattedString('staff.patron.standing_penalty.remove_error',[id]),req);
             } else {
-                var node = rows[ id ].my_node;
+                var node = rows[ id ].treeitem_node;
                 var parentNode = node.parentNode;
                 parentNode.removeChild( node );
                 delete(rows[ id ]);
@@ -371,7 +369,7 @@ function handle_archive_penalty(ev) {
                             try {
                                 var res = openils.Util.readResponse(r,true);
                                 /* FIXME - test for success */
-                                var node = rows[row_id].my_node;
+                                var node = rows[row_id].treeitem_node;
                                 var parentNode = node.parentNode;
                                 parentNode.removeChild( node );
                                 delete(rows[row_id]);

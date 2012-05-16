@@ -1,6 +1,7 @@
 package OpenILS::WWW::EGCatLoader;
 use strict; use warnings;
 use Apache2::Const -compile => qw(OK DECLINED FORBIDDEN HTTP_INTERNAL_SERVER_ERROR REDIRECT HTTP_BAD_REQUEST);
+use File::Spec;
 use OpenSRF::Utils::Logger qw/$logger/;
 use OpenILS::Utils::CStoreEditor qw/:funcs/;
 use OpenILS::Utils::Fieldmapper;
@@ -13,7 +14,8 @@ our %cache = ( # cached data
     map => {aou => {}}, # others added dynamically as needed
     list => {},
     search => {},
-    org_settings => {}
+    org_settings => {},
+    eg_cache_hash => undef
 );
 
 sub init_ro_object_cache {
@@ -68,12 +70,18 @@ sub init_ro_object_cache {
         # search for objects of class $hint where field=value
         $cache{search}{$hint} = {};
         $ro_object_subs->{$search_key} = sub {
-            my ($field, $val) = @_;
+            my ($field, $val, $filterfield, $filterval) = @_;
             my $method = "search_$eclass";
+            my $cacheval = $val;
+            my $search_obj = {$field => $val};
+            if($filterfield) {
+                $search_obj->{$filterfield} = $filterval;
+                $cacheval .= ':' . $filterfield . ':' . $filterval;
+            }
             $cache{search}{$hint}{$field} = {} unless $cache{search}{$hint}{$field};
-            $cache{search}{$hint}{$field}{$val} = $e->$method({$field => $val}) 
-                unless $cache{search}{$hint}{$field}{$val};
-            return $cache{search}{$hint}{$field}{$val};
+            $cache{search}{$hint}{$field}{$cacheval} = $e->$method($search_obj) 
+                unless $cache{search}{$hint}{$field}{$cacheval};
+            return $cache{search}{$hint}{$field}{$cacheval};
         };
     }
 
@@ -120,6 +128,47 @@ sub init_ro_object_cache {
         return [ values %{$cache{map}{aou}} ];
     };
 
+    $ro_object_subs->{aouct_tree} = sub {
+
+        # fetch the org unit tree
+        unless(exists $cache{aouct_tree}) {
+            $cache{aouct_tree} = undef;
+
+            my $tree_id = $e->search_actor_org_unit_custom_tree(
+                {purpose => 'opac', active => 't'},
+                {idlist => 1}
+            )->[0];
+
+            if ($tree_id) {
+                my $node_tree = $e->search_actor_org_unit_custom_tree_node([
+                {parent_node => undef, tree => $tree_id},
+                {   flesh        => -1,
+                    flesh_fields => {aouctn => ['children', 'org_unit']},
+                    order_by     => {aouctn => 'sibling_order'}
+                }
+                ])->[0];
+
+                # tree-ify the org units.  note that since the orgs are fleshed
+                # upon retrieval, this org tree will not clobber ctx->{aou_tree}.
+                my @nodes = ($node_tree);
+                while (my $node = shift(@nodes)) {
+                    my $aou = $node->org_unit;
+                    $aou->children([]);
+                    for my $cnode (@{$node->children}) {
+                        my $child_org = $cnode->org_unit;
+                        $child_org->parent_ou($aou->id);
+                        $child_org->ou_type( $ro_object_subs->{get_aout}->($child_org->ou_type) );
+                        push(@{$aou->children}, $child_org);
+                        push(@nodes, $cnode);
+                    }
+                }
+
+                $cache{aouct_tree} = $node_tree->org_unit;
+            }
+        }
+
+        return $cache{aouct_tree};
+    };
 
     # turns an ISO date into something TT can understand
     $ro_object_subs->{parse_datetime} = sub {
@@ -180,14 +229,23 @@ sub get_records_and_facets {
     $unapi_args->{flesh_depth} ||= 5;
 
     my @data;
+    my $outer_self = $self;
+    $self->timelog("get_records_and_facets(): about to call multisession");
     my $ses = OpenSRF::MultiSession->new(
         app => 'open-ils.cstore',
         cap => 10, # XXX config
         success_handler => sub {
             my($self, $req) = @_;
             my $data = $req->{response}->[0]->content;
+
+            $outer_self->timelog("get_records_and_facets(): got response content");
+
+            # Protect against requests for non-existent records
+            return unless $data->{'unapi.bre'};
+
             my $xml = XML::LibXML->new->parse_string($data->{'unapi.bre'})->documentElement;
 
+            $outer_self->timelog("get_records_and_facets(): parsed xml");
             # Protect against legacy invalid MARCXML that might not have a 901c
             my $bre_id;
             my $bre_id_nodes =  $xml->find('*[@tag="901"]/*[@code="c"]');
@@ -197,8 +255,11 @@ sub get_records_and_facets {
                 $logger->warn("Missing 901 subfield 'c' in " . $xml->toString());
             }
             push(@data, {id => $bre_id, marc_xml => $xml});
+            $outer_self->timelog("get_records_and_facets(): end of success handler");
         }
     );
+
+    $self->timelog("get_records_and_facets(): about to call unapi.bre via json_query (rec_ids has " . scalar(@$rec_ids));
 
     $ses->request(
         'open-ils.cstore.json_query',
@@ -207,10 +268,13 @@ sub get_records_and_facets {
             $unapi_args->{flesh}, 
             $unapi_args->{site}, 
             $unapi_args->{depth}, 
-            $unapi_args->{flesh_depth}, 
+            'acn=>' . $unapi_args->{flesh_depth} . ',acp=>' . $unapi_args->{flesh_depth}, 
+            undef, undef, $unapi_args->{pref_lib}
         ]}
     ) for @$rec_ids;
 
+
+    $self->timelog("get_records_and_facets():almost ready to fetch facets");
     # collect the facet data
     my $search = OpenSRF::AppSession->create('open-ils.search');
     my $facet_req = $search->request(
@@ -219,10 +283,12 @@ sub get_records_and_facets {
 
     # gather up the unapi recs
     $ses->session_wait(1);
+    $self->timelog("get_records_and_facets():past session wait");
 
     my $facets = {};
     if ($facet_key) {
         my $tmp_facets = $facet_req->gather(1);
+        $self->timelog("get_records_and_facets(): gathered facet data");
         for my $cmf_id (keys %$tmp_facets) {
 
             # sort highest to lowest match count
@@ -237,6 +303,7 @@ sub get_records_and_facets {
                 data => \@entries
             }
         }
+        $self->timelog("get_records_and_facets(): gathered/sorted facet data");
     } else {
         $facets = undef;
     }
@@ -278,28 +345,167 @@ sub fetch_marc_xml_by_id {
 
 sub _get_search_lib {
     my $self = shift;
+    my $ctx = $self->ctx;
 
-    # loc param takes precedence
-    my $loc = $self->cgi->param('loc');
+    # avoid duplicate lookups
+    return $ctx->{search_ou} if $ctx->{search_ou};
+
+    my $loc = $ctx->{copy_location_group_org};
     return $loc if $loc;
 
-    if ($self->ctx->{user}) {
+    # loc param takes precedence
+    $loc = $self->cgi->param('loc');
+    return $loc if $loc;
+
+    my $pref_lib = $self->_get_pref_lib();
+    return $pref_lib if $pref_lib;
+
+    return $ctx->{aou_tree}->()->id;
+}
+
+sub _get_pref_lib {
+    my $self = shift;
+    my $ctx = $self->ctx;
+
+    # plib param takes precedence
+    my $plib = $self->cgi->param('plib');
+    return $plib if $plib;
+
+    if ($ctx->{user}) {
         # See if the user has a search library preference
         my $lset = $self->editor->search_actor_user_setting({
-            usr => $self->ctx->{user}->id, 
+            usr => $ctx->{user}->id, 
             name => 'opac.default_search_location'
         })->[0];
         return OpenSRF::Utils::JSON->JSON2perl($lset->value) if $lset;
 
         # Otherwise return the user's home library
-        return $self->ctx->{user}->home_ou;
+        return $ctx->{user}->home_ou;
     }
 
     if ($self->cgi->param('physical_loc')) {
         return $self->cgi->param('physical_loc');
     }
 
-    return $self->ctx->{aou_tree}->()->id;
+}
+
+# This is defensively coded since we don't do much manual reading from the
+# file system in this module.
+sub load_eg_cache_hash {
+    my ($self) = @_;
+
+    # just a context helper
+    $self->ctx->{eg_cache_hash} = sub { return $cache{eg_cache_hash}; };
+
+    # Need to actually load the value? If already done, move on.
+    return if defined $cache{eg_cache_hash};
+
+    # In this way even if we fail, we won't slow things down by ever trying
+    # again within this Apache process' lifetime.
+    $cache{eg_cache_hash} = 0;
+
+    my $path = File::Spec->catfile(
+        $self->apache->document_root, "eg_cache_hash"
+    );
+
+    if (not open FH, "<$path") {
+        $self->apache->log->warn("error opening $path : $!");
+        return;
+    } else {
+        my $buf;
+        my $rv = read FH, $buf, 64;  # defensive
+        close FH;
+
+        if (not defined $rv) {  # error
+            $self->apache->log->warn("error reading $path : $!");
+        } elsif ($rv > 0) {     # no error, something read
+            chomp $buf;
+            $cache{eg_cache_hash} = $buf;
+        }
+    }
+}
+
+# Extracts the copy location org unit and group from the 
+# "logc" param, which takes the form org_id:grp_id.
+sub extract_copy_location_group_info {
+    my $self = shift;
+    my $ctx = $self->ctx;
+    if (my $clump = $self->cgi->param('locg')) {
+        my ($org, $grp) = split(/:/, $clump);
+        $ctx->{copy_location_group_org} = $org;
+        $ctx->{copy_location_group} = $grp if $grp;
+    }
+}
+
+sub load_copy_location_groups {
+    my $self = shift;
+    my $ctx = $self->ctx;
+
+    # User can access to the search location groups at the current 
+    # search lib, the physical location lib, and the patron's home ou.
+    my @ctx_orgs = $ctx->{search_ou};
+    push(@ctx_orgs, $ctx->{physical_loc}) if $ctx->{physical_loc};
+    push(@ctx_orgs, $ctx->{user}->home_ou) if $ctx->{user};
+
+    my $grps = $self->editor->search_asset_copy_location_group([
+        {
+            opac_visible => 't',
+            owner => {
+                in => {
+                    select => {aou => [{
+                        column => 'id', 
+                        transform => 'actor.org_unit_full_path',
+                        result_field => 'id',
+                    }]},
+                    from => 'aou',
+                    where => {id => \@ctx_orgs}
+                }
+            }
+        },
+        {order_by => {acplg => 'pos'}}
+    ]);
+
+    my %buckets;
+    push(@{$buckets{$_->owner}}, $_) for @$grps;
+    $ctx->{copy_location_groups} = \%buckets;
+}
+
+sub set_file_download_headers {
+    my $self = shift;
+    my $filename = shift;
+    my $ctype = shift || "text/plain; encoding=utf8";
+
+    $self->apache->content_type($ctype);
+
+    $self->apache->headers_out->add(
+        "Content-Disposition",
+        "attachment;filename=$filename"
+    );
+
+    return Apache2::Const::OK;
+}
+
+sub apache_log_if_event {
+    my ($self, $event, $prefix_text, $success_ok, $level) = @_;
+
+    $prefix_text ||= "Evergreen returned event";
+    $success_ok ||= 0;
+    $level ||= "warn";
+
+    chomp $prefix_text;
+    $prefix_text .= ": ";
+
+    my $code = $U->event_code($event);
+    if (defined $code and ($code or not $success_ok)) {
+        $self->apache->log->$level(
+            $prefix_text .
+            ($event->{textcode} || "") . " ($code)" .
+            ($event->{note} ? (": " . $event->{note}) : "")
+        );
+        return 1;
+    }
+
+    return;
 }
 
 1;

@@ -748,6 +748,7 @@ Recognized search keys include:
  series  (se) - search series     *
  lang - limit by language (specifiy multiple langs with lang:l1 lang:l2 ...)
  site - search at specified org unit, corresponds to actor.org_unit.shortname
+ pref_ou - extend search to specified org unit, corresponds to actor.org_unit.shortname
  sort - sort type (title, author, pubdate)
  dir  - sort direction (asc, desc)
  available - if set to anything other than "false" or "0", limits to available items
@@ -805,7 +806,7 @@ sub multiclass_query {
 
     my $simple_class_re  = qr/((?:\w+(?:\|\w+)?):[^:]+?)$/;
     my $class_list_re    = qr/(?:keyword|title|author|subject|series)/;
-    my $modifier_list_re = qr/(?:site|dir|sort|lang|available)/;
+    my $modifier_list_re = qr/(?:site|dir|sort|lang|available|preflib)/;
 
     my $tmp_value = '';
     while ($query =~ s/$simple_class_re//so) {
@@ -840,6 +841,14 @@ sub multiclass_query {
                 $arghash->{depth} = $e->retrieve_actor_org_unit_type($org->ou_type)->depth;
             } else {
                 $logger->warn("'site:' query used on invalid org shortname: $value ... ignoring");
+            }
+        } elsif($type eq 'pref_ou') {
+            # 'pref_ou' is the preferred org shortname.
+            my $e = new_editor();
+            if(my $org = $e->search_actor_org_unit({shortname => $value})->[0]) {
+                $arghash->{pref_ou} = $org->id if $org;
+            } else {
+                $logger->warn("'pref_ou:' query used on invalid org shortname: $value ... ignoring");
             }
 
         } elsif($type eq 'available') {
@@ -1477,10 +1486,6 @@ sub cache_facets {
     my $data = $cache->get_cache($key);
     $data ||= {};
 
-    if (!ref($ignore)) {
-        $ignore = ['identifier']; # ignore the identifier class by default
-    }
-
     return undef unless (@$results);
 
     # The query we're constructing
@@ -1494,29 +1499,33 @@ sub cache_facets {
     #   group by 1,2;
 
     my $count_field = $metabib ? 'metarecord' : 'source';
-    my $facets = $U->cstorereq( "open-ils.cstore.json_query.atomic",
-        {   select  => {
-                mfae => [ { column => 'field', alias => 'id'}, 'value' ],
-                mmrsm => [{
-                    transform => 'count',
-                    distinct => 1,
-                    column => $count_field,
-                    alias => 'count',
-                    aggregate => 1
-                }]
-            },
-            from    => {
-                mfae => {
-                    mmrsm => { field => 'source', fkey => 'source' },
-                    cmf   => { field => 'id', fkey => 'field' }
-                }
-            },
-            where   => {
-                '+mmrsm' => { $count_field => $results },
-                '+cmf'   => { field_class => { 'not in' => $ignore }, facet_field => 't' }
+    my $query = {   
+        select  => {
+            mfae => [ { column => 'field', alias => 'id'}, 'value' ],
+            mmrsm => [{
+                transform => 'count',
+                distinct => 1,
+                column => $count_field,
+                alias => 'count',
+                aggregate => 1
+            }]
+        },
+        from    => {
+            mfae => {
+                mmrsm => { field => 'source', fkey => 'source' },
+                cmf   => { field => 'id', fkey => 'field' }
             }
+        },
+        where   => {
+            '+mmrsm' => { $count_field => $results },
+            '+cmf'   => { facet_field => 't' }
         }
-    );
+    };
+
+    $query->{where}->{'+cmf'}->{field_class} = {'not in' => $ignore}
+        if ref($ignore) and @$ignore > 0;
+
+    my $facets = $U->cstorereq("open-ils.cstore.json_query.atomic", $query);
 
     for my $facet (@$facets) {
         next unless ($facet->{value});

@@ -76,7 +76,6 @@ patron.search_result.prototype = {
         obj.list.init(
             {
                 'columns' : columns,
-                'map_row_to_columns' : patron.util.std_map_row_to_columns(),
                 'retrieve_row' : function(params) {
                     var id = params.retrieve_id;
                     var au_obj = patron.util.retrieve_fleshed_au_via_id(
@@ -101,6 +100,24 @@ patron.search_result.prototype = {
                             }
                         }
                     );
+                },
+                'on_dblclick' : function(ev) {
+                    JSAN.use('util.functional');
+                    var sel = obj.list.retrieve_selection();
+                    var list = util.functional.map_list(
+                        sel,
+                        function(o) { return o.getAttribute('retrieve_id'); }
+                    );
+                    obj.controller.view.cmd_sel_clip.setAttribute('disabled', list.length < 1 );
+                    if (typeof obj.on_dblclick == 'function') {
+                        obj.on_dblclick(list);
+                    }
+                    if (typeof window.xulG == 'object' && typeof window.xulG.on_dblclick == 'function') {
+                        obj.error.sdump('D_PATRON','patron.search_result: Calling external .on_dblclick()\n');
+                        window.xulG.on_dblclick(list);
+                    } else {
+                        obj.error.sdump('D_PATRON','patron.search_result: No external .on_dblclick()\n');
+                    }
                 },
                 'on_select' : function(ev) {
                     JSAN.use('util.functional');
@@ -218,11 +235,15 @@ patron.search_result.prototype = {
         try {
             var results = [];
 
+            var sort_params = obj.search_sort;
+            if (!sort_params) {
+                sort_params = [ 'family_name ASC', 'first_given_name ASC', 'second_given_name ASC', 'dob DESC' ];
+            }
             var params = [ 
                 ses(), 
                 search_hash, 
                 typeof obj.search_limit != 'undefined' && typeof obj.search_limit != 'null' ? obj.search_limit : obj.result_cap + 1, 
-                typeof obj.search_sort != 'undefined' ? obj.search_sort : [ 'family_name ASC', 'first_given_name ASC', 'second_given_name ASC', 'dob DESC' ] 
+                sort_params
             ];
             if (inactive) {
                 params.push(1);

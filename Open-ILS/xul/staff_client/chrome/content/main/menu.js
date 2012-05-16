@@ -62,6 +62,7 @@ main.menu.prototype = {
         urls.remote = params['server'];
 
         xulG.get_barcode = this.get_barcode;
+        xulG.get_barcode_and_settings = this.get_barcode_and_settings;
 
         // Pull in local customizations
         var r = new XMLHttpRequest();
@@ -72,73 +73,7 @@ main.menu.prototype = {
             eval( r.responseText );
         }
 
-        // Try workstation pref for button bar
-        var button_bar = xulG.pref.getCharPref('open-ils.menu.toolbar');
-
-        if (!button_bar) // No workstation pref? Try org unit pref.
-            button_bar = String( obj.data.hash.aous['ui.general.button_bar'] );
-
-        if (button_bar) {
-            var x = document.getElementById('toolbar_' + button_bar);
-            if (x) x.setAttribute('hidden','false');
-            this.toolbar = button_bar;
-        }
-
-        // Check for alternate Size pref
-        var toolbar_size = xulG.pref.getCharPref('open-ils.menu.toolbar.iconsize');
-        if(toolbar_size) this.toolbar_size = toolbar_size;
-        // Check for alternate Mode pref
-        var toolbar_mode = xulG.pref.getCharPref('open-ils.menu.toolbar.mode');
-        if(toolbar_mode) this.toolbar_mode = toolbar_mode;
-        // Check for alternate Label Position pref
-        var toolbar_labelpos = xulG.pref.getBoolPref('open-ils.menu.toolbar.labelbelow');
-        if(toolbar_labelpos) this.toolbar_labelpos = toolbar_labelpos;
-
-        if(button_bar || toolbar_size || toolbar_mode || toolbar_labelpos) {
-            var toolbox = document.getElementById('main_toolbox');
-            var toolbars = toolbox.getElementsByTagName('toolbar');
-            for(var i = 0; i < toolbars.length; i++) {
-                if(toolbars[i].id == 'toolbar_' + button_bar)
-                    toolbars[i].setAttribute('hidden', 'false');
-                else
-                    toolbars[i].setAttribute('hidden', 'true');
-                if(toolbar_mode) toolbars[i].setAttribute('mode', toolbar_mode);
-                if(toolbar_size) toolbars[i].setAttribute('iconsize', toolbar_size);
-                if(toolbar_labelpos) addCSSClass(toolbars[i], 'labelbelow');
-            }
-        }
-
-        if(button_bar) {
-            var x = document.getElementById('main.menu.admin.client.toolbars.current.popup');
-            if (x) {
-                var selectitems = x.getElementsByAttribute('value',button_bar);
-                if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
-            }
-        }
-
-        if(toolbar_size) {
-            var x = document.getElementById('main.menu.admin.client.toolbars.size.popup');
-            if (x) {
-                var selectitems = x.getElementsByAttribute('value',toolbar_size);
-                if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
-            }
-        }
-
-        if(toolbar_mode) {
-            var x = document.getElementById('main.menu.admin.client.toolbars.mode.popup');
-            if (x) {
-                var selectitems = x.getElementsByAttribute('value',toolbar_mode);
-                if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
-            }
-        }
-
-        if(toolbar_labelpos) {
-            var x = document.getElementById('main.menu.admin.client.toolbars.label_position.popup');
-            if (x) {
-                var selectitems = x.getElementsByAttribute('value',"under");
-                if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
-            }
-        }
+        this.button_bar_init();
 
         var cl_first = xulG.pref.getBoolPref('oils.copy_editor.copy_location_name_first');
         var menuitems = document.getElementsByAttribute('command','cmd_copy_editor_copy_location_first_toggle');
@@ -625,13 +560,6 @@ main.menu.prototype = {
                     obj.command_tab(event,obj.url_prefix(urls.XUL_CHECKIN)+'?hold_capture=1',{},{});
                 }
             ],
-            'cmd_browse_holds' : [
-                ['oncommand'],
-                function(event) { 
-                    obj.data.stash_retrieve();
-                    obj.command_tab(event,obj.url_prefix(urls.XUL_HOLDS_BROWSER),{ 'tab_name' : offlineStrings.getString('menu.cmd_browse_holds.tab') },{});
-                }
-            ],
             'cmd_browse_holds_shelf' : [
                 ['oncommand'],
                 function(event) { 
@@ -770,6 +698,10 @@ main.menu.prototype = {
                 ['oncommand'],
                 function(event) { open_eg_web_page('conify/global/permission/grp_penalty_threshold', null, event); }
             ],
+            'cmd_local_admin_circ_limit_set' : [
+                ['oncommand'],
+                function(event) { open_eg_web_page('conify/global/config/circ_limit_set', null, event); }
+            ],
             'cmd_server_admin_config_rule_circ_duration' : [
                 ['oncommand'],
                 function(event) { open_eg_web_page('conify/global/config/rule_circ_duration', null, event); }
@@ -809,6 +741,18 @@ main.menu.prototype = {
             'cmd_server_admin_config_asset_sip_fields' : [
                 ['oncommand'],
                 function(event) { open_eg_web_page('conify/global/config/asset_sip_fields', null, event); }
+            ],
+            'cmd_server_admin_circ_limit_group' : [
+                ['oncommand'],
+                function(event) { open_eg_web_page('conify/global/config/circ_limit_group', null, event); }
+            ],
+            'cmd_server_admin_config_usr_activity_type' : [
+                ['oncommand'],
+                function(event) { open_eg_web_page('conify/global/config/usr_activity_type', null, event); }
+            ],
+            'cmd_server_admin_actor_org_unit_custom_tree' : [
+                ['oncommand'],
+                function(event) { open_eg_web_page('conify/global/actor/org_unit_custom_tree', null, event); }
             ],
             'cmd_local_admin_external_text_editor' : [
                 ['oncommand'],
@@ -1063,6 +1007,10 @@ main.menu.prototype = {
             'cmd_local_admin_address_alert' : [
                 ['oncommand'],
                 function(event) { open_eg_web_page('conify/global/actor/address_alert', null, event); }
+            ],
+            'cmd_local_admin_copy_location_group' : [
+                ['oncommand'],
+                function(event) { open_eg_web_page('conify/global/asset/copy_location_group', null, event); }
             ],
             'cmd_acq_create_invoice' : [
                 ['oncommand'],
@@ -1555,14 +1503,7 @@ main.menu.prototype = {
                 ['oncommand'],
                 function(event) {
                     var newToolbar = event.explicitOriginalTarget.getAttribute('value');
-                    var toolbox = document.getElementById('main_toolbox');
-                    var toolbars = toolbox.getElementsByTagName('toolbar');
-                    for(var i = 0; i < toolbars.length; i++) {
-                        if(toolbars[i].id == 'toolbar_' + newToolbar)
-                            toolbars[i].setAttribute('hidden', 'false');
-                        else
-                            toolbars[i].setAttribute('hidden', 'true');
-                    }
+                    obj.render_toolbar(newToolbar);
                     obj.toolbar = newToolbar;
                 }
             ],
@@ -1601,6 +1542,13 @@ main.menu.prototype = {
                             removeCSSClass(toolbars[i], 'labelbelow');
                     }
                     obj.toolbar_labelpos = (altPosition ? "under" : "side");
+                }
+            ],
+            'cmd_toolbar_configure' : [
+                ['oncommand'],
+                function(event) {
+                    var url = obj.url_prefix( urls.XUL_TOOLBAR_CONFIG ); 
+                    obj.command_tab(event,url,{},{});
                 }
             ],
             'cmd_toolbar_setworkstation' : [
@@ -1688,11 +1636,138 @@ main.menu.prototype = {
         obj.controller.view.tabs = window.document.getElementById('main_tabs');
         obj.controller.view.panels = window.document.getElementById('main_panels');
         obj.controller.view.tabscroller = window.document.getElementById('main_tabs_scrollbox');
+
+        obj.sort_menu(document.getElementById('main.menu.admin'), true);
+
         if(params['firstURL']) {
             obj.new_tab(params['firstURL'],{'focus':true},null);
         }
         else {
             obj.new_tab(null,{'focus':true},null);
+        }
+    },
+
+    'button_bar_init' : function() {
+        try {
+
+            var obj = this;
+
+            JSAN.use('util.widgets');
+
+            // populate the menu of available toolbars
+            var x = document.getElementById('main.menu.admin.client.toolbars.current.popup');
+            if (x) {
+                util.widgets.remove_children(x);
+
+                function create_menuitem(label,value,checked) {
+                    var menuitem = document.createElement('menuitem');
+                        menuitem.setAttribute('name','current_toolbar');
+                        menuitem.setAttribute('type','radio');
+                        menuitem.setAttribute('label',label);
+                        menuitem.setAttribute('value',value);
+                        menuitem.setAttribute('command','cmd_toolbar_set');
+                        if (checked) menuitem.setAttribute('checked','true');
+                    return menuitem;
+                }
+
+                x.appendChild(
+                    create_menuitem(
+                        offlineStrings.getString('staff.main.button_bar.none'),
+                        'none',
+                        true
+                    )
+                );
+
+                for (var i = 0; i < this.data.list.atb.length; i++) {
+                    var def = this.data.list.atb[i];
+                    x.appendChild(
+                        create_menuitem(
+                            def.label(),
+                            def.id()
+                        )
+                    );
+                }
+            }
+
+            // Try workstation pref for button bar
+            var button_bar = xulG.pref.getCharPref('open-ils.menu.toolbar');
+
+            if (!button_bar) { // No workstation pref? Try org unit pref.
+                if (obj.data.hash.aous['ui.general.button_bar']) {
+                    button_bar = String( obj.data.hash.aous['ui.general.button_bar'] );
+                }
+            }
+
+            if (button_bar) {
+                this.render_toolbar(button_bar);
+                this.toolbar = button_bar;
+            }
+
+            // Check for alternate Size pref
+            var toolbar_size = xulG.pref.getCharPref('open-ils.menu.toolbar.iconsize');
+            if(toolbar_size) this.toolbar_size = toolbar_size;
+            // Check for alternate Mode pref
+            var toolbar_mode = xulG.pref.getCharPref('open-ils.menu.toolbar.mode');
+            if(toolbar_mode) this.toolbar_mode = toolbar_mode;
+            // Check for alternate Label Position pref
+            var toolbar_labelpos = xulG.pref.getBoolPref('open-ils.menu.toolbar.labelbelow');
+            if(toolbar_labelpos) this.toolbar_labelpos = toolbar_labelpos;
+
+            if(button_bar || toolbar_size || toolbar_mode || toolbar_labelpos) {
+                var toolbar = document.getElementById('toolbar_main');
+                if(toolbar_mode) toolbar.setAttribute('mode', toolbar_mode);
+                if(toolbar_size) toolbar.setAttribute('iconsize', toolbar_size);
+                if(toolbar_labelpos) addCSSClass(toolbar, 'labelbelow');
+            }
+
+            if(button_bar) {
+                var x = document.getElementById('main.menu.admin.client.toolbars.current.popup');
+                if (x) {
+                    var selectitems = x.getElementsByAttribute('value',button_bar);
+                    if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
+                }
+            }
+
+            if(toolbar_size) {
+                var x = document.getElementById('main.menu.admin.client.toolbars.size.popup');
+                if (x) {
+                    var selectitems = x.getElementsByAttribute('value',toolbar_size);
+                    if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
+                }
+            }
+
+            if(toolbar_mode) {
+                var x = document.getElementById('main.menu.admin.client.toolbars.mode.popup');
+                if (x) {
+                    var selectitems = x.getElementsByAttribute('value',toolbar_mode);
+                    if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
+                }
+            }
+
+            if(toolbar_labelpos) {
+                var x = document.getElementById('main.menu.admin.client.toolbars.label_position.popup');
+                if (x) {
+                    var selectitems = x.getElementsByAttribute('value',"under");
+                    if(selectitems.length > 0) selectitems[0].setAttribute('checked','true');
+                }
+            }
+
+            // stash the available toolbar buttons for later use in the toolbar editing interface
+            if (typeof this.data.toolbar_buttons == 'undefined') {
+                this.data.toolbar_buttons = {};
+                var nl = $('palette').childNodes;
+                for (var i = 0; i < nl.length; i++) {
+                    var id = nl[i].getAttribute('templateid');
+                    var label = nl[i].getAttribute('label');
+                    if (id && label) {
+                        this.data.toolbar_buttons[ id ] = label;
+                    }
+                }
+                this.data.stash('toolbar_buttons');
+            }
+
+        } catch(E) {
+            alert('Error in menu.js, button_bar_init(): ' + E);
         }
     },
 
@@ -2165,6 +2240,14 @@ commands:
         var panel = this.controller.view.panels.childNodes[ idx ];
         while ( panel.lastChild ) panel.removeChild( panel.lastChild );
 
+        content_params.is_tab_locked = function() {
+            dump('is_tab_locked\n');
+            var id = tab.getAttribute('id');
+            if (typeof obj.tab_semaphores[id] == 'undefined') {
+                return false;
+            }
+            return obj.tab_semaphores[id] > 0;
+        }
         content_params.lock_tab = function() { 
             dump('lock_tab\n');
             var id = tab.getAttribute('id');
@@ -2205,6 +2288,8 @@ commands:
         content_params.network_meter = obj.network_meter;
         content_params.page_meter = obj.page_meter;
         content_params.get_barcode = obj.get_barcode;
+        content_params.get_barcode_and_settings = obj.get_barcode_and_settings;
+        content_params.render_toolbar_layout = function(layout) { return obj.render_toolbar_layout(layout); };
         content_params.set_statusbar = function(slot,text,tooltiptext,click_handler) {
             var e = document.getElementById('statusbarpanel'+slot);
             if (e) {
@@ -2457,6 +2542,73 @@ commands:
             return "user_false";
     },
 
+    'get_barcode_and_settings' : function(window, barcode, settings_only) {
+        JSAN.use('util.network');
+        if(!settings_only) {
+            // We need to double-check the barcode for completion and such.
+            var new_barcode = xulG.get_barcode(window, 'actor', barcode);
+            if(new_barcode == "user_false") return;
+            // No error means we have a (hopefully valid) completed barcode to use.
+            // Otherwise, fall through to other methods of checking
+            if(typeof new_barcode.ilsevent == 'undefined')
+                barcode = new_barcode.barcode;
+            else
+                return false;
+        }
+        var network = new util.network();
+        // We have a barcode! Time to load settings.
+        // First, we need the user ID
+        var user = network.simple_request('FM_AU_RETRIEVE_VIA_BARCODE', [ ses(), barcode ]);
+        if(user.ilsevent != undefined || user.textcode != undefined)
+            return false;
+        var settings = {};
+        for(var i = 0; i < user.settings().length; i++) {
+            settings[user.settings()[i].name()] = JSON2js(user.settings()[i].value());
+        }
+        if(!settings['opac.default_phone'] && user.day_phone()) settings['opac.default_phone'] = user.day_phone();
+        if(!settings['opac.hold_notify'] && settings['opac.hold_notify'] !== '') settings['opac.hold_notify'] = 'email:phone';
+        return {"barcode": barcode, "settings" : settings};
+    },
+
+    'sort_menu' : function(menu, recurse) {
+        var curgroup = new Array();
+        var curstart = 1;
+        var curordinal = 0;
+        for (var itemid = 0; itemid < menu.firstChild.children.length; itemid++) {
+            var item = menu.firstChild.children[itemid];
+            curordinal++;
+            if (item.getAttribute('forceFirst')) {
+                item.setAttribute('ordinal', curstart);
+                curstart++;
+                continue;
+            }
+            if (item.nodeName == 'menuseparator') {
+                this.sort_menu_items(curgroup, curstart);
+                item.setAttribute('ordinal', curordinal);
+                curstart = curordinal + 1;
+                curgroup = new Array();
+                continue;
+            }
+            if (item.nodeName == 'menu' && recurse) {
+                this.sort_menu(item, recurse);
+            }
+            curgroup.push(item);
+        }
+        this.sort_menu_items(curgroup, curstart);
+    },
+
+    'sort_menu_items' : function(itemgroup, start) {
+        var curpos = start;
+        var sorted = itemgroup.sort(function(a,b) {
+            var labelA = a.getAttribute('label').toUpperCase();
+            var labelB = b.getAttribute('label').toUpperCase();
+            return labelA.localeCompare(labelB);
+        });
+        for(var item = 0; item < sorted.length; item++) {
+            sorted[item].setAttribute('ordinal', curpos++);
+        }
+    },
+
     'observe' : function(subject, topic, data) {
         if (topic != "nsPref:changed") {
             return;
@@ -2474,6 +2626,80 @@ commands:
 
     'stop_observing' : function() {
         xulG.pref.removeObserver('oils.copy_editor.*', this);
+    },
+
+    'render_toolbar' : function(button_bar) {
+        try {
+
+            this.last_sanctioned_toolbar = button_bar;
+
+            var toolbar = document.getElementById('toolbar_main');
+
+            if (button_bar == 'none' || typeof button_bar == 'undefined') {
+                toolbar.setAttribute('hidden','true');
+                return;
+            }
+
+            // find the layout
+            var layout;
+            JSAN.use('util.widgets'); JSAN.use('util.functional');
+            var def = this.data.hash.atb[ button_bar ];
+            if (!def) def = util.functional.find_list( this.data.list.atb, function(e) { return e.label == button_bar; } );
+            if (!def) {
+                dump('Could not find layout for specified toolbar. Defaulting to a stock toolbar.\n');
+                layout = ["circ_checkout","circ_checkin","toolbarseparator","search_opac","copy_status","toolbarseparator","patron_search","patron_register","toolbarspacer","hotkeys_toggle"];
+            } else {
+                layout = JSON2js(def.layout());
+            }
+
+            this.render_toolbar_layout(layout);
+
+        } catch(E) {
+            alert('Error in menu.js, render_toolbar('+button_bar+'): ' + E);
+        }
+    },
+
+    'render_toolbar_layout' : function(layout) {
+        try {
+
+            if (!layout) {
+                this.data.stash_retrieve();
+                this.render_toolbar( this.last_sanctioned_toolbar );
+                return;
+            }
+
+            var toolbar = document.getElementById('toolbar_main');
+
+            // destroy existing toolbar
+            util.widgets.remove_children(toolbar);
+
+            // create new one
+            for (var i = 0; i < layout.length; i++) {
+                var e = layout[i];
+                if (e.match('toolbarseparator')) {
+                        toolbar.appendChild( document.createElement('toolbarseparator') );
+                } else if (e.match('toolbarspacer')) {
+                    var spacer = document.createElement('toolbarspacer');
+                    spacer.setAttribute('flex','1');
+                    toolbar.appendChild( spacer );
+                } else {
+                    var templates = $('palette').getElementsByAttribute('templateid',e);
+                    var template = templates.length > 0 ? templates[0] : null;
+                    if (template) {
+                        var clone = template.cloneNode(true);
+                        toolbar.appendChild( clone );
+                    } else {
+                        var label = document.createElement('label');
+                        label.setAttribute('value',e);
+                        toolbar.appendChild( label );
+                    }
+                }
+            }
+            toolbar.setAttribute('hidden','false');
+
+        } catch(E) {
+            alert('Error in menu.js, render_toolbar_layout('+layout+'): ' + E);
+        }
     }
 }
 

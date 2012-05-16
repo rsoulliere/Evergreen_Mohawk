@@ -79,6 +79,7 @@ function AcqLiTable() {
             self.fetchClaimInfo(li.id(), /* force update */ true);
         }
     );
+    this.vlAgent = new VLAgent();
 
     dojo.byId("acq-lit-li-actions-selector").onchange = function() { 
         self.applySelectedLiAction(this.options[this.selectedIndex].value);
@@ -154,6 +155,7 @@ function AcqLiTable() {
         openils.Util.hide('acq-lit-li-details');
         openils.Util.hide('acq-lit-notes-div');
         openils.Util.hide('acq-lit-real-copies-div');
+        openils.Util.hide('acq-lit-asset-creator');
         switch(div) {
             case 'list':
                 openils.Util.show('acq-lit-table-div');
@@ -169,6 +171,9 @@ function AcqLiTable() {
                 break;
             case 'notes':
                 openils.Util.show('acq-lit-notes-div');
+                break;
+            case 'asset-creator':
+                openils.Util.show('acq-lit-asset-creator');
                 break;
             default:
                 if(div) 
@@ -359,6 +364,24 @@ function AcqLiTable() {
         } else {
             openils.Util.show(nodeByName('link_to_catalog', row), 'inline');
             nodeByName("link_to_catalog_link", row).onclick = function() { self.drawBibFinder(li) };
+        }
+
+        if (li.queued_record()) {
+            this.pcrud.retrieve('vqbr', li.queued_record(),
+                {   async : true, 
+                    oncomplete : function(r) {
+                        var qrec = openils.Util.readResponse(r);
+                        openils.Util.show(nodeByName('queue', row), 'inline');
+                        var link = nodeByName("queue_link", row);
+                        link.onclick = function() { 
+                            // open a new tab to the vandelay queue for this record
+                            openils.XUL.newTabEasy(
+                                oilsBasePath + '/vandelay/vandelay?qtype=bib&qid=' + qrec.queue()
+                            );
+                        }
+                    }
+                }
+            );
         }
 
         nodeByName("worksheet_link", row).href =
@@ -555,51 +578,30 @@ function AcqLiTable() {
         var actUnRecv = nodeByName("action_mark_unrecv", row);
         var actUpdateBarcodes = nodeByName("action_update_barcodes", row);
         var actHoldingsMaint = nodeByName("action_holdings_maint", row);
-
         var actNewInvoice = nodeByName('action_new_invoice', row);
         var actLinkInvoice = nodeByName('action_link_invoice', row);
         var actViewInvoice = nodeByName('action_view_invoice', row);
 
+        // always allow access to LI history
         nodeByName('action_view_history', row).onclick = 
             function() { location.href = oilsBasePath + '/acq/lineitem/history/' + li.id(); };
-
-        var state_cell = nodeByName("li_state", row);
-
-        if (li.state() == "cancelled") {
-            if (typeof li.cancel_reason() == "object") {
-                var holds_state = dojo.create(
-                    "span", {
-                        "style": "border-bottom: 1px dashed #000;",
-                        "innerHTML": li.state()
-                    }, state_cell, "only"
-                );
-                new dijit.Tooltip(
-                    {
-                        "label": "<em>" + li.cancel_reason().label() +
-                            "</em><br />" + li.cancel_reason().description(),
-                        "connectId": [holds_state]
-                    }, dojo.create("span", null, state_cell, "last")
-                );
-            } else {
-                state_cell.innerHTML = li.state(); // TODO i18n state labels
-            }
-        } else {
-            state_cell.innerHTML = li.state(); // TODO i18n state labels
-        }
-
 
         /* handle row coloring for based on LI state */
         openils.Util.removeCSSClass(row, /^oils-acq-li-state-/);
         openils.Util.addCSSClass(row, "oils-acq-li-state-" + li.state());
 
-        /* handle links that appear/disappear based on whether LI is received */
-        if (this.isPO) {
-            var self = this;
+        // Expose invoice actions for any lineitem that is linked to a PO 
+        if( li.purchase_order() ) {
+
+            actNewInvoice.disabled = false;
+            actLinkInvoice.disabled = false;
+            actViewInvoice.disabled = false;
 
             actNewInvoice.onclick = function() {
                 location.href = oilsBasePath + '/acq/invoice/view?create=1&attach_li=' + li.id();
                 nodeByName("action_none", row).selected = true;
             };
+
             actLinkInvoice.onclick = function() {
                 if (!self.invoiceLinkDialogManager) {
                     self.invoiceLinkDialogManager =
@@ -609,6 +611,7 @@ function AcqLiTable() {
                 acqLitLinkInvoiceDialog.show();
                 nodeByName("action_none", row).selected = true;
             };
+
             actViewInvoice.onclick = function() {
                 location.href = oilsBasePath +
                     "/acq/search/unified?so=" +
@@ -616,41 +619,70 @@ function AcqLiTable() {
                     "&rt=invoice";
                 nodeByName("action_none", row).selected = true;
             };
-
-            actNewInvoice.disabled = false;
-            actLinkInvoice.disabled = false;
-            actViewInvoice.disabled = false;
-
-            switch(li.state()) {
-                case "on-order":
-                    actReceive.disabled = false;
-                    actReceive.onclick = function() {
-                        if (self.checkLiAlerts(li.id()))
-                            self.issueReceive(li);
-                        nodeByName("action_none", row).selected = true;
-                    };
-                    return;
-
-                case "received":
-                    actUnRecv.disabled = false;
-                    actUnRecv.onclick = function() {
-                        if (confirm(localeStrings.UNRECEIVE_LI))
-                            self.issueReceive(li, /* rollback */ true);
-                        nodeByName("action_none", row).selected = true;
-                    };
-                    // TODO we should allow editing before receipt, in which case the
-                    // test should be "if 1 or more real (acp) copies exist
-                    actUpdateBarcodes.disabled = false;
-                    actUpdateBarcodes.onclick = function() {
-                        self.showRealCopyEditUI(li);
-                        nodeByName("action_none", row).selected = true;
-                    }
-                    actHoldingsMaint.disabled = false;
-                    actHoldingsMaint.onclick = self.generateMakeRecTab( li.eg_bib_id(), 'copy_browser', row );
-
-                    return;
-            }
         }
+                
+
+        /*
+         * If we haven't fleshed the lineitem_details, default to allowing access to the 
+         * holdings maintenence actions.  The alternative is to flesh LIDs on every lineitem, 
+         * but that will add to page render time.  Let's see if this will suffice...
+         */
+        var lids = li.lineitem_details();
+        if( !lids || 
+                (lids && !lids.filter(function(lid) { return lid.eg_copy_id() })[0] )) {
+
+            actUpdateBarcodes.disabled = false;
+            actUpdateBarcodes.onclick = function() {
+                self.showRealCopyEditUI(li);
+                nodeByName("action_none", row).selected = true;
+            }
+            actHoldingsMaint.disabled = false;
+            actHoldingsMaint.onclick = 
+                self.generateMakeRecTab( li.eg_bib_id(), 'copy_browser', row );
+        }
+
+        var state_cell = nodeByName("li_state", row);
+
+        switch(li.state()) {
+
+            case 'cancelled':
+                if(typeof li.cancel_reason() == "object") {
+                    var holds_state = dojo.create(
+                        "span", {
+                            "style": "border-bottom: 1px dashed #000;",
+                            "innerHTML": li.state()
+                        }, state_cell, "only"
+                    );
+                    new dijit.Tooltip(
+                        {
+                            "label": "<em>" + li.cancel_reason().label() +
+                                "</em><br />" + li.cancel_reason().description(),
+                            "connectId": [holds_state]
+                        }, dojo.create("span", null, state_cell, "last")
+                    );
+                }
+                return; // all done
+
+            case "on-order":
+                actReceive.disabled = false;
+                actReceive.onclick = function() {
+                    if (self.checkLiAlerts(li.id()))
+                        self.issueReceive(li);
+                    nodeByName("action_none", row).selected = true;
+                };
+                break;
+
+            case "received":
+                actUnRecv.disabled = false;
+                actUnRecv.onclick = function() {
+                    if (confirm(localeStrings.UNRECEIVE_LI))
+                        self.issueReceive(li, /* rollback */ true);
+                    nodeByName("action_none", row).selected = true;
+                };
+                break;
+        }
+
+        state_cell.innerHTML = li.state(); // TODO i18n state labels
     };
 
 
@@ -831,7 +863,7 @@ function AcqLiTable() {
     }
 
     this.updateLiPrice = function(input, li) {
-
+        var self = this;
         var price = input.value;
         if(Number(price) == Number(li.estimated_unit_price())) return;
 
@@ -843,6 +875,20 @@ function AcqLiTable() {
                 oncomplete : function(r) {
                     openils.Util.readResponse(r);
                     li.estimated_unit_price(price); // update local copy
+
+                    /*
+                     * If this is a PO and every visible lineitem has a price,
+                     * check again to see if this PO can be activated.  Note that 
+                     * every visible lineitem having a price does not guarantee it can
+                     * be activated, which is why we still make the call.  Having a price
+                     * set for every visiable lineitem is just the lowest barrier to entry.
+                     */
+                    if (self.isPO) {
+                        var priceNodes = dojo.query('[name=price]', dojo.byId('acq-lit-tbody'));
+                        var allSet = true;
+                        dojo.forEach(priceNodes, function(node) { if (node.value == '') allSet = false});
+                        if (allSet) checkCouldActivatePo();
+                    }
                 }
             }
         );
@@ -1676,13 +1722,13 @@ function AcqLiTable() {
     };
 
     this.updateLidState = function(copy, row) {
+        var self = this;
+
         if (typeof(row) == "undefined") {
-            row = dojo.query(
-                'tr[copy_id="' + copy.id() + '"]', this.copyTbody
-            )[0];
+            row = dojo.query('tr[copy_id="' + copy.id() + '"]', this.copyTbody)[0];
         }
 
-        var self = this;
+        // action links
         var recv_link = nodeByName("receive", row);
         var unrecv_link = nodeByName("unreceive", row);
         var del_link = nodeByName("delete", row);
@@ -1690,90 +1736,78 @@ function AcqLiTable() {
         var claim_link = nodeByName("claim", row);
         var cxl_reason_link = nodeByName("cancel_reason", row);
 
-        if (copy.cancel_reason()) {
-            openils.Util.hide(del_link.parentNode);
-            openils.Util.hide(recv_link);
-            openils.Util.hide(unrecv_link);
-            openils.Util.hide(cxl_link);
-            openils.Util.hide(claim_link);
+        // by default, hide all the actions
+        openils.Util.hide(del_link.parentNode);
+        openils.Util.hide(recv_link);
+        openils.Util.hide(unrecv_link);
+        openils.Util.hide(cxl_link);
+        openils.Util.hide(claim_link);
+        openils.Util.hide(cxl_reason_link);
 
-            /* XXX the following may leak memory in a long lived table: dijits may not get destroyed... not positive. revisit. */
-            var holds_reason = dojo.create(
-                "span", {
-                    "style": "border-bottom: 1px dashed #000;",
-                    "innerHTML": "Cancelled" /* XXX [sic] and i18n */
-                }, cxl_reason_link, "only"
-            );
-            new dijit.Tooltip(
-                {
-                    "label": "<em>" + copy.cancel_reason().label() +
-                        "</em><br />" + copy.cancel_reason().description(),
-                    "connectId": [holds_reason]
-                }, dojo.create("span", null, cxl_reason_link, "last")
-            );
-            openils.Util.show(cxl_reason_link, "inline");
-        } else if (this.isPO) {
-            /* Only using this in one place so far, but may want it for better
-             * decisions on when to display certain controls. */
-            var li_state = this.liCache[copy.lineitem()].state();
+        if (copy.id() > 0) { // real copies (LIDs)
 
-            openils.Util.hide(del_link.parentNode);
-            openils.Util.hide(cxl_reason_link);
+            if (copy.cancel_reason()) { 
 
-            /* Avoid showing (un)receive links, cancel links, for virt copies */
-            if (copy.id() > 0) {
-                if (copy.recv_time()) {
-                    openils.Util.hide(cxl_link);
-                    openils.Util.hide(recv_link);
-                    openils.Util.hide(claim_link);
+                /* --------- cancelled -------------------------- */
 
-                    openils.Util.show(unrecv_link, "inline");
-                    unrecv_link.onclick = function() {
-                        if (confirm(localeStrings.UNRECEIVE_LID))
-                            self.issueReceive(copy, /* rollback */ true);
-                    };
-                } else {
-                    openils.Util.hide(unrecv_link);
+                /* XXX the following may leak memory in a long lived table: 
+                 * dijits may not get destroyed... not positive. revisit. */
+                var holds_reason = dojo.create(
+                    "span", {
+                        "style": "border-bottom: 1px dashed #000;",
+                        "innerHTML": "Cancelled" /* XXX [sic] and i18n */
+                    }, cxl_reason_link, "only"
+                );
+                new dijit.Tooltip(
+                    {
+                        "label": "<em>" + copy.cancel_reason().label() +
+                            "</em><br />" + copy.cancel_reason().description(),
+                        "connectId": [holds_reason]
+                    }, dojo.create("span", null, cxl_reason_link, "last")
+                );
+                openils.Util.show(cxl_reason_link, "inline");
 
-                    if (this.claimEligibleLid[copy.id()]) {
-                        openils.Util.show(claim_link, "inline");
-                        claim_link.onclick = function() {
-                            self.claimDialog.show(
-                                self.liCache[copy.lineitem()], copy.id()
-                            );
-                        };
-                    } else {
-                        openils.Util.hide(claim_link);
-                    }
+            } else if (copy.recv_time()) { 
 
-                    openils.Util[li_state == "on-order" ? "show" : "hide"](
-                        recv_link, "inline"
-                    );
-                    openils.Util.show(cxl_link, "inline");
-                    recv_link.onclick = function() {
-                        if (self.checkLiAlerts(copy.lineitem()))
-                            self.issueReceive(copy);
-                    };
-                    cxl_link.onclick = function() {
-                        self.cancelLid(copy.id());
-                    };
-                }
+                /* --------- received -------------------------- */
+
+                openils.Util.show(unrecv_link, "inline");
+                unrecv_link.onclick = function() {
+                    if (confirm(localeStrings.UNRECEIVE_LID))
+                        self.issueReceive(copy, /* rollback */ true);
+                };
+
+            } else if (this.liCache[copy.lineitem()].state() == 'on-order') {
+                
+                /* --------- on order -------------------------- */
+
+                openils.Util.show(recv_link, 'inline');
+                openils.Util.show(cxl_link, "inline");
+
+                recv_link.onclick = function() {
+                    if (self.checkLiAlerts(copy.lineitem()))
+                        self.issueReceive(copy);
+                };
+
+                cxl_link.onclick = function() { self.cancelLid(copy.id()) };
+
             } else {
-                openils.Util.hide(cxl_link);
-                openils.Util.hide(unrecv_link);
-                openils.Util.hide(recv_link);
-                openils.Util.hide(claim_link);
+
+                /* --------- pre-order copies  -------------------------- */
+
+                del_link.onclick = function() { self.deleteCopy(row) };
+                openils.Util.show(del_link.parentNode);
+
             }
-        } else {
-            openils.Util.hide(unrecv_link);
-            openils.Util.hide(recv_link);
-            openils.Util.hide(cxl_reason_link);
-            openils.Util.hide(claim_link);
+
+        } else { 
+
+            /* --------- virtual copies  -------------------------- */
 
             del_link.onclick = function() { self.deleteCopy(row) };
             openils.Util.show(del_link.parentNode);
         }
-    }
+    };
 
     this.cancelLid = function(lid_id) {
         lidCancelDialog._lid_id = lid_id;
@@ -2023,7 +2057,7 @@ function AcqLiTable() {
                 break;
 
             case 'create_assets':
-                this.createAssets();
+                this.showAssetCreator();
                 break;
 
             case 'export_attr_list':
@@ -2085,18 +2119,45 @@ function AcqLiTable() {
         );
     };
 
-    this.createAssets = function() {
+    this.showAssetCreator = function(onAssetsCreated) {
         if(!this.isPO) return;
-        if(!confirm(localeStrings.CREATE_PO_ASSETS_CONFIRM)) return;
+        var self = this;
+    
+        // first, let's see if this PO has any LI's that need to be merged/imported
+        self.pcrud.search('jub', {purchase_order : this.isPO, eg_bib_id : null}, {
+            id_list : true,
+            oncomplete : function(r) {
+                var resp = openils.Util.readResponse(r);
+                if (resp && resp.length) {
+                    // PO has some non-linked jubs.  
+                    
+                    self.show('asset-creator');
+                    if(!self.vlAgent.loaded)
+                        self.vlAgent.init();
+
+                    dojo.connect(assetCreatorButton, 'onClick', 
+                        function() { self.createAssets(onAssetsCreated) });
+
+                } else {
+
+                    // all jubs linked, move on to asset creation
+                    self.createAssets(onAssetsCreated, true); 
+                }
+            }
+        });
+    }
+
+    this.createAssets = function(onAssetsCreated, noVl) {
         this.show('acq-lit-progress-numbers');
         var self = this;
+        var vlArgs = (noVl) ? {} : {vandelay : this.vlAgent.values()};
         fieldmapper.standardRequest(
             ['open-ils.acq', 'open-ils.acq.purchase_order.assets.create'],
             {   async: true,
-                params: [this.authtoken, this.isPO],
+                params: [this.authtoken, this.isPO, vlArgs],
                 onresponse: function(r) {
                     var resp = openils.Util.readResponse(r);
-                    self._updateProgressNumbers(resp, true);
+                    self._updateProgressNumbers(resp, !Boolean(onAssetsCreated), onAssetsCreated);
                 }
             }
         );
@@ -2262,10 +2323,6 @@ function AcqLiTable() {
     }
 
     this.issueReceive = function(obj, rollback) {
-        /* (For now) there shall be no marking LI or LIDs (un)received
-         * except from the actual "view PO" interface. */
-        if (!this.isPO) return;
-
         var part =
             {"jub": "lineitem", "acqlid": "lineitem_detail"}[obj.classname];
         var method =
@@ -2333,16 +2390,15 @@ function AcqLiTable() {
         );
     }
 
-    this._updateProgressNumbers = function(resp, reloadOnComplete) {
-        if(!resp) return;
-        dojo.byId('acq-pl-lit-li-processed').innerHTML = resp.li;
-        dojo.byId('acq-pl-lit-lid-processed').innerHTML = resp.lid;
-        dojo.byId('acq-pl-lit-debits-processed').innerHTML = resp.debits_accrued;
-        dojo.byId('acq-pl-lit-bibs-processed').innerHTML = resp.bibs;
-        dojo.byId('acq-pl-lit-indexed-processed').innerHTML = resp.indexed;
-        dojo.byId('acq-pl-lit-copies-processed').innerHTML = resp.copies;
-        if(resp.complete && reloadOnComplete) 
-            location.href = location.href;
+    this._updateProgressNumbers = function(resp, reloadOnComplete, onComplete) {
+        this.vlAgent.handleResponse(resp,
+            function(resp, res) {
+                if(reloadOnComplete)
+                     location.href = location.href;
+                if (onComplete)
+                    onComplete(resp, res);
+            }
+        );
     }
 
 
@@ -2369,30 +2425,37 @@ function AcqLiTable() {
 
     this._createPOFromLineitems = function(fields, selected) {
         if (selected.length == 0) return;
+        var self = this;
 
-        this.show("acq-lit-progress-numbers");
         var po = new fieldmapper.acqpo();
         po.provider(this.createPoProviderSelector.attr("value"));
         po.ordering_agency(this.createPoAgencySelector.attr("value"));
         po.prepayment_required(fields.prepayment_required[0] ? true : false);
+
+        // if we're creating assets, delay the asset creation 
+        // until after the PO is created.  This will allow us to 
+        // use showAssetCreator() directly.
 
         fieldmapper.standardRequest(
             ["open-ils.acq", "open-ils.acq.purchase_order.create"],
             {   async: true,
                 params: [
                     openils.User.authtoken, 
-                    po, {
-                        lineitems : selected,
-                        create_assets : fields.create_assets[0],
-                    }
+                    po, {lineitems : selected}
                 ],
-
                 onresponse : function(r) {
                     var resp = openils.Util.readResponse(r);
-                    self._updateProgressNumbers(resp);
                     if (resp.complete) {
-                        location.href = oilsBasePath + "/acq/po/view/" +
-                            resp.purchase_order.id();
+                        // self.isPO is needed for showAssetCreator();
+                        self.isPO = resp.purchase_order.id(); 
+                        var redir = oilsBasePath + "/acq/po/view/" + self.isPO;
+                        if (fields.create_assets[0]) {
+                            self.showAssetCreator(
+                                function() {location.href = redir}
+                            );
+                        } else {
+                           location.href = redir;
+                        }
                     }
                 }
             }

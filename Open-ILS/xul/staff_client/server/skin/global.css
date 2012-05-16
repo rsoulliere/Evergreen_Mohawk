@@ -10,6 +10,8 @@ messagecatalog { -moz-binding: url('/xul/server/main/bindings.xml#messagecatalog
 
 window:not([active="true"]) menubar > menu { color: menutext !important }
 
+.hideme { display: none; }
+
 treechildren::-moz-tree-checkbox(checked) {
     /* css for checked cells */
     list-style-image: url("chrome://global/skin/checkbox/cbox-check.gif");
@@ -19,6 +21,13 @@ treechildren::-moz-tree-row(selected) {
     border: thin dashed lightblue ! important;
 }
 
+treechildren::-moz-tree-column(ordinal) {
+    background: -moz-dialog ! important;
+}
+
+treechildren::-moz-tree-cell-text(ordinal) {
+    font-weight: bold ! important;
+}
 /*
 treechildren::-moz-tree-cell-text(selected,focus) {
     color: black;

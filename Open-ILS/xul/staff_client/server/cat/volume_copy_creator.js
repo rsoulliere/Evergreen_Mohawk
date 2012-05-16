@@ -1109,7 +1109,7 @@ g.vivicate_update_volumes = function() {
 
                     if (typeof g.acn_map[ callnumber_data.acn_id ] == 'undefined') {
                         g.acn_map[ callnumber_data.acn_id ] = g.acn_map[ acn_id ];
-                }
+                    }
 
                 }
             }
@@ -1188,12 +1188,12 @@ g.stash_and_close = function(param) {
                     label_editor_func = function() {
                         JSAN.use('util.functional');
                         xulG[tab_method](
-                        urls.XUL_SPINE_LABEL,
+                            urls.XUL_SPINE_LABEL,
                             { 'tab_name' : tab_name },
-                        {
-                            'barcodes' : util.functional.map_list( copies, function(o){return o.barcode();})
-                        }
-                    );
+                            {
+                                'barcodes' : util.functional.map_list( copies, function(o){return o.barcode();})
+                            }
+                        );
                     };
                 }
             } catch(E) {
@@ -1208,6 +1208,9 @@ g.stash_and_close = function(param) {
             xulG.unlock_copy_editor();
         }
 
+        if (typeof xulG.reload_opac == 'function') {
+            xulG.reload_opac();
+        }
         if (xul_param('load_opac_when_done')) {
             var opac_url = xulG.url_prefix( urls.opac_rdetail ) + g.doc_id;
             var content_params = {
@@ -1231,7 +1234,7 @@ g.stash_and_close = function(param) {
             if (typeof label_editor_func == 'function') {
                 label_editor_func();
             }
-        if (! dont_close) { xulG.close_tab(); }
+            if (! dont_close) { xulG.close_tab(); }
         }
 
     } catch(E) {

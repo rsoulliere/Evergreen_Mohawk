@@ -50,6 +50,9 @@ use OpenILS::Utils::Fieldmapper;
 use OpenILS::Utils::MFHD;
 use DateTime::Format::ISO8601;
 use MARC::File::XML (BinaryEncoding => 'utf8');
+
+use OpenILS::Application::Serial::OPAC;
+
 my $U = 'OpenILS::Application::AppUtils';
 my @MFHD_NAMES = ('basic','supplement','index');
 my %MFHD_NAMES_BY_TAG = (  '853' => $MFHD_NAMES[0],
@@ -62,6 +65,11 @@ my %MFHD_TAGS_BY_NAME = (  $MFHD_NAMES[0] => '853',
                         $MFHD_NAMES[1] => '854',
                         $MFHD_NAMES[2] => '855');
 my $_strp_date = new DateTime::Format::Strptime(pattern => '%F');
+my %FM_NAME_TO_ID = (
+    'subscription' => 'ssub',
+    'distribution' => 'sdist',
+    'item' => 'sitem'
+    );
 
 # helper method for conforming dates to ISO8601
 sub _cleanse_dates {
@@ -341,7 +349,7 @@ sub fleshed_serial_item_retrieve_batch {
         "open-ils.cstore.direct.serial.item.search.atomic",
         { id => $ids },
         { flesh => 2,
-          flesh_fields => {sitem => [ qw/issuance creator editor stream unit notes/ ], sstr => ["distribution"], sunit => ["call_number"], siss => [qw/creator editor subscription/]}
+          flesh_fields => {sitem => [ qw/issuance creator editor stream unit notes/ ], sunit => ["call_number"], siss => [qw/creator editor subscription/]}
         });
 }
 
@@ -503,6 +511,8 @@ sub pub_fleshed_serial_issuance_retrieve_batch {
 }
 
 sub received_siss_by_bib {
+    # XXX this is somewhat wrong in implementation and should not be used in
+    # new places - senator
     my $self = shift;
     my $client = shift;
     my $bib = shift;
@@ -614,6 +624,8 @@ q/A hash of optional arguments.  Valid keys and their meanings:
 
 
 sub scoped_bib_holdings_summary {
+    # XXX this is somewhat wrong in implementation and should not be used in
+    # new places - senator
     my $self = shift;
     my $client = shift;
     my $bibid = shift;
@@ -643,7 +655,7 @@ __PACKAGE__->register_method(
     api_level => 1,
     argc      => 1,
     signature => {
-        desc   => 'Receives a Bib ID and other optional params and returns set of holdings statements',
+        desc   => '** DEPRECATED and only used by JSPAC. Somewhat wrong in implementation. *** Receives a Bib ID and other optional params and returns set of holdings statements',
         params => [
             {   name => 'bibid',
                 desc => 'id of the bre to which the issuances belong',
@@ -879,10 +891,13 @@ sub make_predictions {
     foreach my $scap (@$scaps) {
         my $caption_field = _revive_caption($scap);
         $caption_field->update('8' => $link_id);
-        my $using_fake_chron = 0;
-        # if we have no chronology, add one for prediction puposes
-        if (!$caption_field->subfield('i') and !$caption_field->enumeration_is_chronology) {
-            $using_fake_chron = 1;
+        my $fake_chron_needed = 0;
+        # if we have missing chron pieces, we will add them later for prediction purposes
+        if (!$caption_field->enumeration_is_chronology) {
+            if (!$caption_field->subfield('i') # no year
+                or !$caption_field->subfield('j')) { # we had a year, but no month or season
+                $fake_chron_needed = '1';
+            }
         }
         $mfhd->append_fields($caption_field);
         my $options = {
@@ -892,9 +907,9 @@ sub make_predictions {
                 'end_date' => defined $args->{end_date} ?
                     $_strp_date->parse_datetime($args->{end_date}) : undef
                 };
+        my $predict_from_siss;
         if ($args->{base_issuance}) { # predict from a given issuance
-            $options->{predict_from} = _revive_holding($args->{base_issuance}->holding_code, $caption_field, 1); # fresh MFHD Record, so we simply default to 1 for seqno
-            $options->{faked_chron_date} = DateTime::Format::ISO8601->new->parse_datetime(cleanse_ISO8601($args->{base_issuance}->date_published)) if $using_fake_chron;
+            $predict_from_siss = $args->{base_issuance}->holding_code;
         } else { # default to predicting from last published
             my $last_published = $editor->search_serial_issuance([
                     {'caption_and_pattern' => $scap->id,
@@ -902,8 +917,8 @@ sub make_predictions {
                 {limit => 1, order_by => { siss => "date_published DESC" }}]
                 );
             if ($last_published->[0]) {
-                my $last_siss = $last_published->[0];
-                unless ($last_siss->holding_code) {
+                $predict_from_siss = $last_published->[0];
+                unless ($predict_from_siss->holding_code) {
                     $editor->disconnect;
                     # XXX TODO new event type
                     return new OpenILS::Event(
@@ -911,8 +926,6 @@ sub make_predictions {
                             "Last issuance has no holding code. Can't predict."
                     );
                 }
-                $options->{predict_from} = _revive_holding($last_siss->holding_code, $caption_field, 1);
-                $options->{faked_chron_date} = DateTime::Format::ISO8601->new->parse_datetime(cleanse_ISO8601($last_siss->date_published)) if $using_fake_chron;
             } else {
                 $editor->disconnect;
                 # XXX TODO make a new event type instead of hijacking this one
@@ -920,6 +933,10 @@ sub make_predictions {
                     "BAD_PARAMS", note => "No issuance from which to predict!"
                 );
             }
+        }
+        $options->{predict_from} = _revive_holding($predict_from_siss->holding_code, $caption_field, 1); # fresh MFHD Record, so we simply default to 1 for seqno
+        if ($fake_chron_needed) {
+            $options->{faked_chron_date} = DateTime::Format::ISO8601->new->parse_datetime(cleanse_ISO8601($predict_from_siss->date_published));
         }
         push( @predictions, _generate_issuance_values($mfhd, $options) );
         $link_id++;
@@ -984,8 +1001,8 @@ sub _generate_issuance_values {
     my $scap_id = $options->{scap_id};
     my $num_to_predict = $options->{num_to_predict};
     my $end_date = $options->{end_date};
-    my $predict_from = $options->{predict_from};   # issuance to predict from
-    my $faked_chron_date = $options->{faked_chron_date};   # serial does not have a chronology caption, so add one (temporarily) based on this date 
+    my $predict_from = $options->{predict_from};   # MFHD::Holding to predict from
+    my $faked_chron_date = $options->{faked_chron_date};   # serial does not have a (complete) chronology caption, so add one (temporarily) based on this date 
 
 
 # Only needed for 'real' MFHD records, not our temp records
@@ -1008,14 +1025,24 @@ sub _generate_issuance_values {
     $predict_from->notes('private', ['AUTOGEN']);
 
     # our basic method for dealing with 'faked' chronologies will be to add it in, do the predicting, then take it back out
-    my $orig_caption;
-    my $faked_caption;
+    my @faked_subfield_chars;
     if ($faked_chron_date) {
-        $orig_caption = $predict_from->caption;
+        my $faked_caption = new MARC::Field($caption->tag, $caption->indicator(1), $caption->indicator(2), $caption->subfields_list);
+
+        my %mfhd_chron_labels = ('i' => 'year', 'j' => 'month', 'k' => 'day');
+        foreach my $subfield_char ('i', 'j', 'k') {
+            if (!$caption->subfield($subfield_char)) { # if we are missing a piece, add it
+                push(@faked_subfield_chars, $subfield_char);
+                my $chron_name = $mfhd_chron_labels{$subfield_char};
+                $faked_caption->add_subfields($subfield_char => "($chron_name)");
+                my $method = $mfhd_chron_labels{$subfield_char};
+                $predict_from->add_subfields($subfield_char => $faked_chron_date->$chron_name);
+            }
+        }
         # because of the way MFHD::Caption and Holding work, it is simplest
         # to recreate rather than try to update
-        $faked_caption = new MFHD::Caption(new MARC::Field($orig_caption->tag, $orig_caption->indicator(1), $orig_caption->indicator(2), $orig_caption->subfields_list, 'i' => '(year)', 'j' => '(month)', 'k' => '(day)'));
-        $predict_from = new MFHD::Holding($predict_from->seqno, new MARC::Field($predict_from->tag, $predict_from->indicator(1), $predict_from->indicator(2), $predict_from->subfields_list, 'i' => $faked_chron_date->year, 'j' => $faked_chron_date->month, 'k' => $faked_chron_date->day), $faked_caption);
+        $faked_caption = new MFHD::Caption($faked_caption);
+        $predict_from = new MFHD::Holding($predict_from->seqno, new MARC::Field($predict_from->tag, $predict_from->indicator(1), $predict_from->indicator(2), $predict_from->subfields_list), $faked_caption);
     }
 
     my @predictions = $mfhd->generate_predictions({'base_holding' => $predict_from, 'num_to_predict' => $num_to_predict, 'end_date' => $end_date});
@@ -1025,8 +1052,8 @@ sub _generate_issuance_values {
     foreach my $prediction (@predictions) {
         $pub_date = $_strp_date->parse_datetime($prediction->chron_to_date);
         if ($faked_chron_date) { # get rid of the chronology portions and restore original caption
-            $prediction->delete_subfield(code => ['i', 'j', 'k']);
-            $prediction = new MFHD::Holding($prediction->seqno, new MARC::Field($prediction->tag, $prediction->indicator(1), $prediction->indicator(2), $prediction->subfields_list), $orig_caption);
+            $prediction->delete_subfield(code => \@faked_subfield_chars);
+            $prediction = new MFHD::Holding($prediction->seqno, new MARC::Field($prediction->tag, $prediction->indicator(1), $prediction->indicator(2), $prediction->subfields_list), $caption);
         }
         push(
                 @issuance_values,
@@ -1925,18 +1952,19 @@ sub fetch_notes {
 
     my $id = $$args{object_id};
     my $authtoken = $$args{authtoken};
+    my $order_by = $$args{order_by} || 'create_date';
     my( $r, $evt);
 
     if( $$args{pub} ) {
         return $U->cstorereq(
             'open-ils.cstore.direct.serial.'.$type.'_note.search.atomic',
-            { $type => $id, pub => 't' } );
+            { $type => $id, pub => 't' }, {'order_by' => {$FM_NAME_TO_ID{$type}.'n' => $order_by}} );
     } else {
         # FIXME: restore perm check
         # ( $r, $evt ) = $U->checksesperm($authtoken, 'VIEW_COPY_NOTES');
         # return $evt if $evt;
         return $U->cstorereq(
-            'open-ils.cstore.direct.serial.'.$type.'_note.search.atomic', {$type => $id} );
+            'open-ils.cstore.direct.serial.'.$type.'_note.search.atomic', {$type => $id}, {'order_by' => {$FM_NAME_TO_ID{$type}.'n' => $order_by}} );
     }
 
     return undef;
@@ -2454,7 +2482,7 @@ sub fleshed_serial_distribution_retrieve_batch {
         "open-ils.cstore.direct.serial.distribution.search.atomic",
         { id => $ids },
         { flesh => 1,
-          flesh_fields => {sdist => [ qw/ holding_lib receive_call_number receive_unit_template bind_call_number bind_unit_template streams / ]}
+          flesh_fields => {sdist => [ qw/ holding_lib receive_call_number receive_unit_template bind_call_number bind_unit_template streams notes / ]}
         });
 }
 

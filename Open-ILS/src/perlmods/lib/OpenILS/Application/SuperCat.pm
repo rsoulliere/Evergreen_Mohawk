@@ -2161,16 +2161,16 @@ sub new_record_holdings {
 
         # we have a -uris, just get the uris
         if ($flesh == 2) {
-        %subselect = (
+            %subselect = (
                 owning_lib => \@uri_ou_ids,
-            '-exists'  => {
-                from  => { auricnm => 'auri' },
-                where => {
-                    call_number => { '=' => {'+acn'=>'id'} },
-                    '+auri' => { active => 't' }
+                '-exists'  => {
+                    from  => { auricnm => 'auri' },
+                    where => {
+                        call_number => { '=' => {'+acn'=>'id'} },
+                        '+auri' => { active => 't' }
+                    }
                 }
-            }
-        );
+            );
         # we have a -full, get all the things
         } elsif ($flesh == 1) {
             %subselect = ( '-or' => [

@@ -3,6 +3,13 @@
     #   get_marc_attrs( { marc_xml => doc } )
     BLOCK get_marc_attrs;
         xml = args.marc_xml;
+
+        # Map item types to schema.org types; impedance mismatch :(
+        args.schema.itemtype = {};
+        schema_typemap = {};
+        schema_typemap.a = 'http://schema.org/Book';
+        schema_typemap.j = 'http://schema.org/MusicRecording';
+
         args.isbns = [];
         FOR isbn IN xml.findnodes('//*[@tag="020"]/*[@code="a"]');
             args.isbns.push(isbn.textContent);
@@ -15,8 +22,12 @@
         args.issn = xml.findnodes('//*[@tag="022"]/*[@code="a"]').textContent;
         args.author = xml.findnodes('//*[@tag="100"]/*[@code="a"]').textContent;
 
+        # Include subfields 'abnp' to generate a more comprehensive title display in search results
+        titresults = xml.findnodes('//*[@tag="245"]/*[@code="a" or @code="b" or @code="n" or @code="p"]');
+        titresults_content = [];
+            FOR sub IN titresults; titresults_content.push(sub.textContent); END;
+        args.title = titresults_content.join(" ");
         # Avoid ugly trailing syntax on brief titles
-        args.title = xml.findnodes('//*[@tag="245"]/*[@code="a"]').textContent;
         args.title = args.title | replace('[:;/]$', '');
 
         # Provide correct spacing between the subfields
@@ -125,6 +136,7 @@
 
             IF vol.label == '##URI##';
                 FOR uri IN volume.findnodes('./*[local-name()="uris"]/*[local-name()="uri"]');
+                    res = {};
                     res.href = uri.getAttribute('href');
                     res.link = uri.getAttribute('label');
                     res.note = uri.getAttribute('use_restriction');
@@ -186,16 +198,30 @@
                 args.copy_counts.$depth.$attr = node.getAttribute(attr);
             END;
         END;
+        
+        # Get preferred library copy count
+        args.plib_copy_counts = {};
+        count_type = 'pref_lib';
+        xpath = '//*[local-name()="counts"]/*[local-name()="count"][@type="' _ count_type _ '"]';
+        FOR node IN xml.findnodes(xpath);
+            FOR attr IN ['count', 'available', 'unshadow', 'transcendant', 'org_unit']; 
+                depth = node.getAttribute('depth');
+                args.plib_copy_counts.$depth.$attr = node.getAttribute(attr);
+            END;
+        END;
 
         # "mattype" == "custom marc format specifier"
         FOR icon_style IN ['mattype', 'item_type']; 
             node = xml.findnodes(
                 '//*[local-name()="attributes"]/*[local-name()="field"][@name="' _ icon_style _ '"]');
             IF node AND node.textContent;
+                type = node.textContent;
                 args.format_label = node.getAttribute('coded-value')
-                args.format_icon = ctx.media_prefix _ '/images/format_icons/' _ icon_style _ '/' _ node.textContent _ '.png';
+                args.schema.itemtype = schema_typemap.$type;
+                args.format_icon = ctx.media_prefix _ '/images/format_icons/' _ icon_style _ '/' _ type _ '.png';
                 LAST;
             END;
         END;
+
     END;
 %]

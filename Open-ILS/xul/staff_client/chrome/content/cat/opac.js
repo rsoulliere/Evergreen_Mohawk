@@ -1,4 +1,4 @@
-var docid; var marc_html; var top_pane; var bottom_pane; var opac_frame; var opac_url;
+var docid; var marc_html; var top_pane; var bottom_pane; var opac_browser; var opac_url;
 
 var marc_view_reset = true;
 var marc_edit_reset = true;
@@ -106,7 +106,7 @@ function set_brief_view() {
         "set_patron_tab", "volume_item_creator", "get_new_session",
         "holdings_maintenance_tab", "open_chrome_window", "url_prefix",
         "network_meter", "page_meter", "set_statusbar", "set_help_context",
-        "get_barcode"
+        "get_barcode", "reload_opac", "get_barcode_and_settings"
     ].forEach(function(k) { content_params[k] = xulG[k]; });
 
     top_pane.set_iframe( 
@@ -240,7 +240,9 @@ function set_marc_edit() {
                                 );
 
                             } else {
-                                return cat.util.spawn_copy_editor( { 'handle_update' : 1, 'edit' : 1, 'docid' : doc_id, 'copies' : [ copy_obj ] });
+                                var x = cat.util.spawn_copy_editor( { 'handle_update' : 1, 'edit' : 1, 'docid' : doc_id, 'copies' : [ copy_obj ] });
+                                xulG.reload_opac();
+                                return x;
                             }
 
                         } catch(E) {
@@ -260,6 +262,7 @@ function set_marc_edit() {
                         marc_view_reset = true;
                         copy_browser_reset = true;
                         hold_browser_reset = true;
+                        xulG.reload_opac();
                         if (typeof r.ilsevent != 'undefined') {
                             throw(r);
                         } else {
@@ -325,7 +328,8 @@ function open_acq_orders() {
             "set_patron_tab", "volume_item_creator", "get_new_session",
             "holdings_maintenance_tab", "set_tab_name", "open_chrome_window",
             "url_prefix", "network_meter", "page_meter", "set_statusbar",
-            "set_help_context", "get_barcode"
+            "set_help_context", "get_barcode", "reload_opac", 
+            "get_barcode_and_settings"
         ].forEach(function(k) { content_params[k] = xulG[k]; });
 
         var loc = urls.XUL_BROWSER + "?url=" + window.escape(
@@ -352,14 +356,18 @@ function open_alt_serial_mgmt() {
             "authtime": ses("authtime"),
             "show_nav_buttons": true,
             "no_xulG": false,
-            "show_print_button": false
+            "show_print_button": false,
+            "passthru_content_params": {
+                "reload_opac": xulG.reload_opac
+            }
         };
 
         ["url_prefix", "new_tab", "set_tab", "close_tab", "new_patron_tab",
             "set_patron_tab", "volume_item_creator", "get_new_session",
             "holdings_maintenance_tab", "set_tab_name", "open_chrome_window",
             "url_prefix", "network_meter", "page_meter", "set_statusbar",
-            "set_help_context", "get_barcode"
+            "set_help_context", "get_barcode", "reload_opac",
+            "get_barcode_and_settings"
         ].forEach(function(k) { content_params[k] = xulG[k]; });
 
         var loc = urls.XUL_BROWSER + "?url=" + window.escape(
@@ -396,7 +404,8 @@ function set_opac() {
                         g.error.standard_unexpected_error_alert('window_open',E);
                     }
                 },
-                'get_barcode' : xulG.get_barcode
+                'get_barcode' : xulG.get_barcode,
+                'get_barcode_and_settings' : xulG.get_barcode_and_settings
             },
             'on_url_load' : function(f) {
                 netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
@@ -422,41 +431,81 @@ function set_opac() {
                     }
                 );
                 
-                g.f_record_start = null; g.f_record_prev = null; g.f_record_next = null; g.f_record_end = null;
+                g.f_record_start = null; g.f_record_prev = null;
+                g.f_record_next = null; g.f_record_end = null;
+                g.f_record_back_to_results = null;
                 $('record_start').disabled = true; $('record_next').disabled = true;
                 $('record_prev').disabled = true; $('record_end').disabled = true;
+                $('record_back_to_results').disabled = true;
                 $('record_pos').setAttribute('value','');
+
+                function safe_to_proceed() {
+                    if (typeof xulG.is_tab_locked == 'undefined') { return true; }
+                    if (! xulG.is_tab_locked()) { return true; }
+                    var r = window.confirm(
+                        document.getElementById('offlineStrings').getString(
+                           'generic.unsaved_data_warning'
+                        )
+                    );
+                    if (r) {
+                        while ( xulG.unlock_tab() > 0 ) {};
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
 
                 win.attachEvt("rdetail", "nextPrevDrawn",
                     function(rIndex,rCount){
                         $('record_pos').setAttribute('value', document.getElementById('offlineStrings').getFormattedString('cat.record.counter', [(1+rIndex), rCount ? rCount : 1]));
                         if (win.rdetailNext) {
-                            g.f_record_next = function() { 
-                                g.view_override = g.view; 
-                                win.rdetailNext(); 
+                            g.f_record_next = function() {
+                                if (safe_to_proceed()) {
+                                    g.view_override = g.view;
+                                    win.rdetailNext();
+                                }
                             }
                             $('record_next').disabled = false;
                         }
                         if (win.rdetailPrev) {
-                            g.f_record_prev = function() { 
-                                g.view_override = g.view; 
-                                win.rdetailPrev(); 
+                            g.f_record_prev = function() {
+                                if (safe_to_proceed()) {
+                                    g.view_override = g.view;
+                                    win.rdetailPrev();
+                                }
                             }
                             $('record_prev').disabled = false;
                         }
                         if (win.rdetailStart) {
                             g.f_record_start = function() { 
-                                g.view_override = g.view; 
-                                win.rdetailStart(); 
+                                if (safe_to_proceed()) {
+                                    g.view_override = g.view;
+                                    win.rdetailStart();
+                                }
                             }
                             $('record_start').disabled = false;
                         }
                         if (win.rdetailEnd) {
                             g.f_record_end = function() { 
-                                g.view_override = g.view; 
-                                win.rdetailEnd(); 
+                                if (safe_to_proceed()) {
+                                    g.view_override = g.view;
+                                    win.rdetailEnd();
+                                }
                             }
                             $('record_end').disabled = false;
+                        }
+                        if (win.rdetailBackToResults) {
+                            g.f_record_back_to_results = function() {
+                                if (safe_to_proceed()) {
+                                    g.view_override = g.view;
+                                    win.rdetailBackToResults();
+                                    if (g.view != "opac") {
+                                        set_opac();
+                                        opac_wrapper_set_help_context();
+                                    }
+                                }
+                            }
+                            $('record_back_to_results').disabled = false;
                         }
                     }
                 );
@@ -508,6 +557,7 @@ function set_opac() {
         content_params.lock_tab = xulG.lock_tab;
         content_params.unlock_tab = xulG.unlock_tab;
         content_params.inspect_tab = xulG.inspect_tab;
+        content_params.is_tab_locked = xulG.is_tab_locked;
         content_params.new_patron_tab = xulG.new_patron_tab;
         content_params.set_patron_tab = xulG.set_patron_tab;
         content_params.volume_item_creator = xulG.volume_item_creator;
@@ -521,6 +571,7 @@ function set_opac() {
         content_params.set_statusbar = xulG.set_statusbar;
         content_params.set_help_context = xulG.set_help_context;
         content_params.get_barcode = xulG.get_barcode;
+        content_params.get_barcode_and_settings = xulG.get_barcode_and_settings;
 
         var secure_opac = true; // default to secure
         netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
@@ -542,8 +593,18 @@ function set_opac() {
     } catch(E) {
         g.error.sdump('D_ERROR','set_opac: ' + E);
     }
-    opac_wrapper_set_help_context(); 
-    bottom_pane.get_contentWindow().addEventListener('load',opac_wrapper_set_help_context,false);
+    opac_wrapper_set_help_context();
+    opac_browser = bottom_pane.get_contentWindow();
+    opac_browser.addEventListener('load',opac_wrapper_set_help_context,false);
+}
+
+xulG.reload_opac = function() {
+    try {
+        JSAN.use('util.widgets');
+        opac_browser.g.browser.reload();
+    } catch(E) {
+        g.error.sdump("D_ERROR", 'error reloading opac: ' + E + '\n');
+    }
 }
 
 function set_serctrl_view() {
@@ -602,7 +663,7 @@ function create_mfhd() {
             throw(r);
         }
         alert("MFHD record created."); //TODO: better success message
-        browser_frame.contentWindow.g.browser.controller.view.cmd_reload.doCommand();
+        xulG.reload_opac(); // browser_frame.contentWindow.g.browser.controller.view.cmd_reload.doCommand();
     } catch(E) {
         g.error.standard_unexpected_error_alert("Create MFHD failed", E); //TODO: better error handling
     }
@@ -624,7 +685,7 @@ function delete_mfhd(sre_id) {
             alert(document.getElementById('offlineStrings').getFormattedString('cat.opac.record_deleted.error',  [docid, robj.textcode, robj.desc]) + '\n');
         } else {
             alert(document.getElementById('offlineStrings').getString('cat.opac.record_deleted'));
-            browser_frame.contentWindow.g.browser.controller.view.cmd_reload.doCommand();
+            xulG.reload_opac(); // browser_frame.contentWindow.g.browser.controller.view.cmd_reload.doCommand();
         }
     }
 }
@@ -658,6 +719,7 @@ function open_marc_editor(rec, label) {
                     'open-ils.permacrud', method,
                     [ses(), rec]
                 );
+                xulG.reload_opac();
             }
         }
     };
@@ -674,6 +736,7 @@ function bib_in_new_tab() {
         content_params.lock_tab = xulG.lock_tab;
         content_params.unlock_tab = xulG.unlock_tab;
         content_params.inspect_tab = xulG.inspect_tab;
+        content_params.is_tab_locked = xulG.is_tab_locked;
         content_params.new_patron_tab = xulG.new_patron_tab;
         content_params.set_patron_tab = xulG.set_patron_tab;
         content_params.volume_item_creator = xulG.volume_item_creator;
@@ -687,6 +750,7 @@ function bib_in_new_tab() {
         content_params.set_statusbar = xulG.set_statusbar;
         content_params.set_help_context = xulG.set_help_context;
         content_params.get_barcode = xulG.get_barcode;
+        content_params.get_barcode_and_settings = xulG.get_barcode_and_settings;
 
         xulG.new_tab(xulG.url_prefix(urls.XUL_OPAC_WRAPPER), {}, content_params);
     } catch(E) {
@@ -702,7 +766,8 @@ function batch_receive_in_new_tab() {
             "set_patron_tab", "volume_item_creator", "get_new_session",
             "holdings_maintenance_tab", "set_tab_name", "open_chrome_window",
             "url_prefix", "network_meter", "page_meter", "set_statusbar",
-            "set_help_context", "get_barcode"
+            "set_help_context", "get_barcode", "reload_opac",
+            "get_barcode_and_settings"
         ].forEach(function(k) { content_params[k] = xulG[k]; });
 
         xulG.new_tab(
@@ -972,7 +1037,7 @@ function add_volumes() {
         var w = xulG.new_tab(
             url,
             { 'tab_name' : title },
-            { 'doc_id' : docid, 'ou_ids' : [ ses('ws_ou') ] }
+            { 'doc_id' : docid, 'ou_ids' : [ ses('ws_ou') ], 'reload_opac' : xulG.reload_opac }
         );
     } catch(E) {
         alert('Error in chrome/content/cat/opac.js, add_volumes(): ' + E);

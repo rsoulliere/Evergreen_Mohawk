@@ -486,6 +486,8 @@ CREATE TABLE acq.lineitem (
 	estimated_unit_price NUMERIC,
 	claim_policy        INT                         REFERENCES acq.claim_policy
 			                                        DEFERRABLE INITIALLY DEFERRED,
+    queued_record       BIGINT                      REFERENCES vandelay.queued_bib_record (id)
+                                                        ON DELETE SET NULL DEFERRABLE INITIALLY DEFERRED,
     CONSTRAINT picklist_or_po CHECK (picklist IS NOT NULL OR purchase_order IS NOT NULL)
 );
 CREATE INDEX li_po_idx ON acq.lineitem (purchase_order);
@@ -840,6 +842,10 @@ CREATE TABLE acq.invoice_entry (
 	amount_paid     NUMERIC (8,2)
 );
 
+CREATE INDEX ie_inv_idx on acq.invoice_entry (invoice);
+CREATE INDEX ie_po_idx on acq.invoice_entry (purchase_order);
+CREATE INDEX ie_li_idx on acq.invoice_entry (lineitem);
+
 CREATE TABLE acq.invoice_item_type (
     code    TEXT    PRIMARY KEY,
     name    TEXT    NOT NULL,  -- i18n-ize
@@ -865,6 +871,8 @@ CREATE TABLE acq.po_item (
     target          BIGINT
 );
 
+CREATE INDEX poi_po_idx ON acq.po_item (purchase_order);
+
 CREATE TABLE acq.invoice_item ( -- for invoice-only debits: taxes/fees/non-bib items/etc
     id              SERIAL      PRIMARY KEY,
     invoice         INT         NOT NULL REFERENCES acq.invoice (id) ON UPDATE CASCADE ON DELETE CASCADE,
@@ -883,6 +891,10 @@ CREATE TABLE acq.invoice_item ( -- for invoice-only debits: taxes/fees/non-bib i
 	                            DEFERRABLE INITIALLY DEFERRED,
     target          BIGINT
 );
+
+CREATE INDEX ii_inv_idx on acq.invoice_item (invoice);
+CREATE INDEX ii_po_idx on acq.invoice_item (purchase_order);
+CREATE INDEX ii_poi_idx on acq.invoice_item (po_item);
 
 -- Patron requests
 CREATE TABLE acq.user_request_type (

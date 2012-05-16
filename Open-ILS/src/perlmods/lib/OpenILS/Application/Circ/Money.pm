@@ -586,6 +586,7 @@ sub create_grocery_bill {
 
     $transaction->clear_id;
     my $session = $apputils->start_db_session;
+    $apputils->set_audit_info($session, $login, $staff->id, $staff->wsid);
     my $transid = $session->request(
         'open-ils.storage.direct.money.grocery.create', $transaction)->gather(1);
 
@@ -702,6 +703,10 @@ sub billing_items_create {
     $e->create_money_billing($billing) or return $e->die_event;
     my $evt = OpenILS::Utils::Penalty->calculate_penalties($e, $xact->usr, $U->xact_org($xact->id,$e));
     return $evt if $evt;
+
+    $evt = _check_open_xact($e, $xact->id, $xact);
+    return $evt if $evt;
+
     $e->commit;
 
     return $billing->id;

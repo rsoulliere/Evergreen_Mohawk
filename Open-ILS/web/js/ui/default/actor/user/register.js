@@ -5,6 +5,7 @@ dojo.require('dijit.form.FilteringSelect');
 dojo.require('dijit.form.ComboBox');
 dojo.require('dijit.form.NumberSpinner');
 dojo.require('fieldmapper.IDL');
+dojo.require('fieldmapper.OrgUtils');
 dojo.require('openils.PermaCrud');
 dojo.require('openils.widget.AutoGrid');
 dojo.require('openils.widget.AutoFieldWidget');
@@ -47,6 +48,7 @@ var optInSettings;
 var allCardsTemplate;
 var uEditCloneCopyAddr; // if true, copy addrs on clone instead of link
 var homeOuTypes = {};
+var holdPickupTypes = {};
 var cardPerms = {};
 var editCard;
 var prevBillingAddress;
@@ -127,6 +129,9 @@ function load() {
         'ui.patron.registration.require_address',
         'circ.holds.behind_desk_pickup_supported',
         'circ.patron_edit.clone.copy_address',
+        'ui.patron.edit.au.prefix.require',
+        'ui.patron.edit.au.prefix.show',
+        'ui.patron.edit.au.prefix.suggest',
         'ui.patron.edit.au.second_given_name.show',
         'ui.patron.edit.au.second_given_name.suggest',
         'ui.patron.edit.au.suffix.show',
@@ -183,7 +188,8 @@ function load() {
         'format.date',
         'ui.patron.edit.default_suggested',
         'opac.barcode_regex',
-        'opac.username_regex'
+        'opac.username_regex',
+        'sms.enable'
     ]);
 
     for(k in orgSettings)
@@ -219,6 +225,11 @@ function load() {
     for(var i in list) {
         var type = list[i];
         homeOuTypes[type.id()] = true;
+    }
+    list = pcrud.search('aout', {can_have_vols: 'true'});
+    for(var i in list) {
+        var type = list[i];
+        holdPickupTypes[type.id()] = true;
     }
 
     tbody = dojo.byId('uedit-tbody');
@@ -627,7 +638,7 @@ function uEditFetchUserSettings(userId) {
     /* fetch any user setting types we need + any that offer opt-in */
     userSettingTypes = pcrud.search('cust', {
         '-or' : [
-            {name:['circ.holds_behind_desk', 'circ.collections.exempt']}, 
+            {name:['circ.holds_behind_desk', 'circ.collections.exempt', 'opac.hold_notify', 'opac.default_phone', 'opac.default_pickup_location', 'opac.default_sms_carrier', 'opac.default_sms_notify']}, 
             {name : {
                 'in': {
                     select : {atevdef : ['opt_in_setting']}, 
@@ -685,15 +696,97 @@ function uEditDrawSettingRow(tbody, dividerRow, template, stype) {
     var row = template.cloneNode(true);
     row.setAttribute('user_setting', stype.name());
     getByName(row, 'label').innerHTML = stype.label();
-    var cb = new dijit.form.CheckBox({scrollOnFocus:false}, getByName(row, 'widget'));
-    cb.attr('value', userSettings[stype.name()]);
-    dojo.connect(cb, 'onChange', function(newVal) { userSettingsToUpdate[stype.name()] = newVal; });
+    switch(stype.name()) {
+        case 'opac.hold_notify':
+            var template = localeStrings.HOLD_NOTIFY_PHONE + '<span name="hold_phone"></span>&nbsp;'
+                + localeStrings.HOLD_NOTIFY_EMAIL + '<span name="hold_email"></span>';
+            if(orgSettings['sms.enable']) {
+                template += '&nbsp;' + localeStrings.HOLD_NOTIFY_SMS + '<span name="hold_sms"></span>';
+            }
+            getByName(row, 'widget').innerHTML = template;
+            var setting = userSettings['opac.hold_notify'];
+            if(setting == null) setting = 'phone:email';
+            var cb_phone = new dijit.form.CheckBox({scrollOnFocus:false}, getByName(row, 'hold_phone'));
+            cb_phone.attr('value', setting.indexOf('phone') != -1);
+            var cb_email = new dijit.form.CheckBox({scrollOnFocus:false}, getByName(row, 'hold_email'));
+            cb_email.attr('value', setting.indexOf('email') != -1);
+            var cb_sms = null;
+            if(orgSettings['sms.enable']) {
+                cb_sms = new dijit.form.CheckBox({scrollOnFocus:false}, getByName(row, 'hold_sms'));
+                cb_sms.attr('value', setting.indexOf('sms') != -1);
+            }
+            var func = function() {
+                var newVal = '';
+                var splitter = '';
+                if(cb_phone.checked) {
+                    newVal+= splitter + 'phone';
+                    splitter = ':';
+                }
+                if(cb_email.checked) {
+                    newVal+= splitter + 'email';
+                    splitter = ':';
+                }
+                if(orgSettings['sms.enable'] && cb_sms.checked) {
+                    newVal+= splitter + 'sms';
+                    splitter = ':';
+                }
+                userSettingsToUpdate['opac.hold_notify'] = newVal;
+            };
+            dojo.connect(cb_phone, 'onChange', func);
+            dojo.connect(cb_email, 'onChange', func);
+            if(cb_sms) dojo.connect(cb_sms, 'onChange', func);
+            break;
+        case 'opac.default_pickup_location':
+            var sb = new openils.widget.FilteringTreeSelect({
+                scrollOnFocus: false,
+                labelAttr: 'name',
+                searchAttr: 'name',
+                parentField: 'parent_ou',
+                }, getByName(row, 'widget'));
+            sb.tree = fieldmapper.aou.globalOrgTree;
+            sb.startup();
+            sb.attr('value', userSettings[stype.name()]);
+
+            sb.isValid = function() {
+                if(this.item) {
+                    if(holdPickupTypes[this.store.getValue(this.item, 'ou_type')]) {
+                        return true;
+                    }
+                    return false;
+                }
+                return true;
+            };
+
+            dojo.connect(sb, 'onChange', function(newVal) { userSettingsToUpdate[stype.name()] = newVal; });
+            break;
+        case 'opac.default_sms_carrier':
+            if(!orgSettings['sms.enable']) return; // Skip when SMS is disabled
+            var carriers = pcrud.search('csc', {active: 'true'}, {'order_by':[{'class':'csc', 'field':'name'},{'class':'csc', 'field':'region'}]});
+            var storedata = fieldmapper.csc.toStoreData(carriers);
+            for(var i in storedata.items) storedata.items[i].label = storedata.items[i].name + ' (' + storedata.items[i].region + ')';
+            var store = new dojo.data.ItemFileReadStore({data:storedata});
+            var select = new dijit.form.FilteringSelect({store:store,scrollOnFocus:false,labelAttr:'label',searchAttr:'label'}, getByName(row, 'widget'));
+            select.attr('value', userSettings[stype.name()]);
+            select.isValid = function() { return true; };
+            dojo.connect(select, 'onChange', function(newVal) { userSettingsToUpdate[stype.name()] = newVal; });
+            break;
+        case 'opac.default_sms_notify':
+            if(!orgSettings['sms.enable']) return; // Skip when SMS is disabled
+        case 'opac.default_phone':
+            var tb = new dijit.form.TextBox({scrollOnFocus:false}, getByName(row, 'widget'));
+            tb.attr('value', userSettings[stype.name()]);
+            dojo.connect(tb, 'onChange', function(newVal) { userSettingsToUpdate[stype.name()] = newVal; });
+            break;
+        default:
+            var cb = new dijit.form.CheckBox({scrollOnFocus:false}, getByName(row, 'widget'));
+            cb.attr('value', userSettings[stype.name()]);
+            dojo.connect(cb, 'onChange', function(newVal) { userSettingsToUpdate[stype.name()] = newVal; });
+            if(stype.name() == 'circ.collections.exempt') {
+                checkCollectionsExemptPerm(cb);
+            }
+    }
     tbody.insertBefore(row, dividerRow.nextSibling);
     openils.Util.show(row, 'table-row');
-
-    if(stype.name() == 'circ.collections.exempt') {
-        checkCollectionsExemptPerm(cb);
-    }
 }
 
 function uEditUpdateUserSettings(userId) {
@@ -711,6 +804,7 @@ function loadAllAddrs() {
 }
 
 function loadStatCats() {
+    var sc_widget;
 
     statCats = fieldmapper.standardRequest(
         ['open-ils.circ', 'open-ils.circ.stat_cat.actor.retrieve.all'],
@@ -720,30 +814,68 @@ function loadStatCats() {
     // draw stat cats
     for(var idx in statCats) {
         var stat = statCats[idx];
+        var required = openils.Util.isTrue(stat.required());
+        var allow_freetext = openils.Util.isTrue(stat.allow_freetext());
+        var default_entry = null;
+        if(stat.default_entries()[0])
+            default_entry = stat.default_entries()[0].stat_cat_entry();
+        
         var row = statCatTemplate.cloneNode(true);
         row.id = 'stat-cat-row-' + idx;
         row.setAttribute('stat_cat_owner',stat.owner());
         row.setAttribute('stat_cat_name',stat.name());
         row.setAttribute('stat_cat_id',stat.id());
+        if(required) {
+            row.setAttribute('required','required');
+            dividerRow = dojo.byId('stat-cat-divider');
+            dividerRow.setAttribute('required','required');
+        }
         tbody.appendChild(row);
         getByName(row, 'name').innerHTML = stat.name();
         var valtd = getByName(row, 'widget');
         var span = valtd.appendChild(document.createElement('span'));
         var store = new dojo.data.ItemFileReadStore(
                 {data:fieldmapper.actsc.toStoreData(stat.entries())});
-        var comboBox = new dijit.form.ComboBox({store:store,scrollOnFocus:false,fetchProperties:{sort:[{attribute: 'value'}]}}, span);
-        comboBox.labelAttr = 'value';
-        comboBox.searchAttr = 'value';
+        var p_opt, e_field;
 
-        comboBox._wtype = 'statcat';
-        comboBox._statcat = stat.id();
-        widgetPile.push(comboBox); 
-
-        // populate existing cats
-        var map = patron.stat_cat_entries().filter(
+        var patmap = patron.stat_cat_entries().filter(
             function(mp) { return (mp.stat_cat() == stat.id()) })[0];
-        if(map) comboBox.attr('value', map.stat_cat_entry()); 
+        var entrymap = stat.entries().filter(
+                function(mp) { return (mp.id() == default_entry) })[0];
+        
+        if(allow_freetext) {
+            sc_widget = new dijit.form.ComboBox({store:store,scrollOnFocus:false,fetchProperties:{sort:[{attribute: 'value'}]}}, span);
+	    e_field = entrymap ? entrymap.value() : null;
+	    p_opt = 'value';
+        } else {
+            sc_widget = new dijit.form.FilteringSelect({store:store,scrollOnFocus:false,fetchProperties:{sort:[{attribute: 'value'}]}}, span);
+            sc_widget.attr('required', false);
+	    e_field = entrymap ? entrymap.id() : null;
+	    p_opt = 'displayedValue';
+        }
 
+        sc_widget.labelAttr = 'value';
+        sc_widget.searchAttr = 'value';
+
+        sc_widget._wtype = 'statcat';
+        sc_widget._statcat = stat.id();
+
+        // set value:  first choice is patron table entry,
+        // then the default entry for the stat_cat if new patron
+        if(patmap) {
+            sc_widget.attr(p_opt, patmap.stat_cat_entry()); 
+        } else if(entrymap && patron.isnew()) {
+            sc_widget.attr('value', e_field); 
+        }
+
+        if(required) {
+            sc_widget.attr('required', true);
+            sc_widget._hasBeenBlurred = true;
+            if(sc_widget.validate)
+                sc_widget.validate();
+        }
+
+        widgetPile.push(sc_widget); 
     }
 }
 
@@ -850,7 +982,27 @@ function fleshFMRow(row, fmcls, args) {
 
     var fmObject = null;
     switch(fmcls) {
-        case 'au' : fmObject = patron; break;
+        case 'au' :
+            fmObject = patron;
+            if(fmfield == 'barred') {
+                // Are we allowed to touch the barred state?
+                var permission = 'BAR_PATRON';
+                if(fmObject.barred() == 't') {
+                    permission = 'UNBAR_PATRON';
+                }
+                var ou = staff.ws_ou();
+                if(fmObject.home_ou() != null) {
+                    ou = fmObject.home_ou();
+                }
+                var resp = fieldmapper.standardRequest(
+                    ['open-ils.actor', 'open-ils.actor.user.perm.check'],
+                    { params : [openils.User.authtoken, staff.id(), ou, [permission] ] }
+                );
+                if(resp[0]) { // No permission to adjust barred state from current
+                    disabled = true;
+                }
+            }
+            break;
         case 'ac' : if(!editCard) editCard = patron.card(); fmObject = editCard; break;
         case 'aua' : 
             fmObject = patron.addresses().filter(
@@ -1626,6 +1778,10 @@ function _uEditSave(doClone) {
                 var map = patron.stat_cat_entries().filter(
                     function(m){
                         return (m.stat_cat() == w._statcat) })[0];
+
+                if(w.declaredClass == 'dijit.form.FilteringSelect') {
+                    val = w.attr('displayedValue');
+                }
 
                 if(map) {
                     if(map.stat_cat_entry() == val) 

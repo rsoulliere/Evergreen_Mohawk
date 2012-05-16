@@ -17,6 +17,7 @@ use OpenILS::SIP::Transaction::Renew;
 use OpenILS::SIP::Transaction::FeePayment;
 
 use OpenSRF::System;
+use OpenSRF::AppSession;
 use OpenILS::Utils::Fieldmapper;
 use OpenSRF::Utils::SettingsClient;
 use OpenILS::Application::AppUtils;
@@ -28,6 +29,7 @@ my $U = 'OpenILS::Application::AppUtils';
 
 my $editor;
 my $config;
+my $login_account;
 my $target_encoding;    # FIXME: this is configured at the institution level. 
 
 use Digest::MD5 qw(md5_hex);
@@ -37,7 +39,7 @@ sub new {
 	my $type = ref($class) || $class;
 	my $self = {};
 
-	$self->{login} = $login;
+	$self->{login} = $login_account = $login;
 
 	$config = $institution;
 	syslog("LOG_DEBUG", "OILS: new ILS '%s'", $institution->{id});
@@ -47,6 +49,9 @@ sub new {
 	$target_encoding = $institution->{implementation_config}->{encoding} || 'ascii';
 
 	syslog('LOG_DEBUG', "OILS: loading bootstrap config: $bsconfig");
+
+	# ingress will persist throughout
+	OpenSRF::AppSession->ingress('sip2');
 	
 	local $/ = "\n";    # why?
 	OpenSRF::System->bootstrap_client(config_file => $bsconfig);
@@ -90,6 +95,9 @@ sub editor {
 
 sub config {
 	return $config;
+}
+sub login_account {
+	return $login_account;
 }
 
 sub get_option_value {
