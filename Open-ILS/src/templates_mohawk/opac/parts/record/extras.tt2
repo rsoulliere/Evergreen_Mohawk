@@ -22,7 +22,7 @@
             {name => 'excerpt',  label => l('Excerpt'), hide => 1},
             {name => 'issues',   label => l('Issues Held'), hide => !(ctx.have_holdings_to_show || ctx.have_mfhd_to_show)},
             {name => 'preview',  label => l('Preview'), hide => 1}, 
-            {name => 'cnbrowse', label => l('Shelf Browser with QR Codes')},
+            {name => 'cnbrowse', label => l('Shelf Browser')},
             {name => 'marchtml', label => l('MARC Record')}
         ];
 

@@ -47,13 +47,16 @@
                     <td>
                         [% recid = f.xact.circulation.target_copy.call_number.record.id || f.xact.reservation.target_resource_type.record.id;
                         IF recid; %]
-                        <a href="[% ctx.opac_root %]/record/[% recid %]">[% attrs.title | html %]</a>
+                        <a href="[% mkurl(ctx.opac_root _ '/record/' _ recid,
+                            {loc => ctx.search_ou}) %]">[% attrs.title | html %]</a>
                         [% ELSE %]
                         [% attrs.title | html %]
                         [% END %]
                     </td>
-                    <td>
-                        <a href="[% ctx.opac_root %]/results?qtype=author&amp;query=[% attrs.author | replace('[,\.:;]', '') | url %]">[% attrs.author | html %]</a>
+                    <td>[%- author_query = attrs.author.replace('[,\.:;]', ''); %]
+                        <a href="[% mkurl(ctx.opac_root _ '/results',
+                            {qtype => 'author', query => author_query,
+                            loc => ctx.search_ou}) %]">[% attrs.author | html %]</a>
                     </td>
                     <td name='myopac_circ_trans_start'>
                         [% ts = f.xact.circulation.xact_start || f.xact.reservation.start_time || 0;
@@ -75,11 +78,11 @@
                             <!-- XXX TODO fines aren't really accruing
                                 if circ has hit maxfines. more clarity
                                 here? -->
-                            <span class="red">[% l('(fines accruing)') %]</span>
+                            <span class="alert">[% l('(fines accruing)') %]</span>
                         [%  END %]
                     </td>
                     <td>
-                        <strong class="red">
+                        <strong class="alert">
                             [% money(f.xact.balance_owed) %]
                         </strong>
                     </td>
@@ -147,7 +150,7 @@
                     </td>
                     <td>[% money(f.xact.total_owed) %]</td>
                     <td>[% money(f.xact.total_paid) %]</td>
-                    <td class="red">
+                    <td class="alert">
                         <strong>
                             [% money(f.xact.balance_owed) %]
                         </strong>
