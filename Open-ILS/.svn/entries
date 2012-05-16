@@ -1,0 +1,55 @@
+10
+
+dir
+178
+svn://libdog.mohawkcollege.ca/evergreen/trunk/Open-ILS
+svn://libdog.mohawkcollege.ca/evergreen
+
+
+
+2012-02-14T19:30:13.191154Z
+178
+rsoulliere
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5c3b6fda-0194-4e59-bf6b-2bec742c26c3
+
+images
+dir
+
+updates
+dir
+
+xsl
+dir
+
+src
+dir
+
+xul
+dir
+
+web
+dir
+
+examples
+dir
+
+tests
+dir
+
+include
+dir
+

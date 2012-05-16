@@ -1,0 +1,89 @@
+10
+
+dir
+178
+svn://libdog.mohawkcollege.ca/evergreen/trunk/Open-ILS/xul/staff_client/server
+svn://libdog.mohawkcollege.ca/evergreen
+
+
+
+2012-02-08T19:26:13.630931Z
+169
+rsoulliere
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5c3b6fda-0194-4e59-bf6b-2bec742c26c3
+
+locale
+dir
+
+serial
+dir
+
+circ
+dir
+
+index.xhtml
+file
+
+
+
+
+2012-05-16T12:02:31.440067Z
+30cca26c0df38f7f0ff540a4747e4ec0
+2012-01-06T14:29:50.351501Z
+132
+rsoulliere
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+26675
+
+patron
+dir
+
+main
+dir
+
+skin
+dir
+
+cat
+dir
+
+admin
+dir
+
+OpenILS
+dir
+

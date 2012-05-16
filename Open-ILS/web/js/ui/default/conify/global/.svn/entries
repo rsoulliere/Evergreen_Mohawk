@@ -1,0 +1,52 @@
+10
+
+dir
+178
+svn://libdog.mohawkcollege.ca/evergreen/trunk/Open-ILS/web/js/ui/default/conify/global
+svn://libdog.mohawkcollege.ca/evergreen
+
+
+
+2012-02-08T14:56:52.099732Z
+168
+rsoulliere
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5c3b6fda-0194-4e59-bf6b-2bec742c26c3
+
+vandelay
+dir
+
+acq
+dir
+
+config
+dir
+
+cat
+dir
+
+permission
+dir
+
+action
+dir
+
+asset
+dir
+
+action_trigger
+dir
+
