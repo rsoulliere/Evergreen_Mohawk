@@ -1,124 +1,0 @@
-10
-
-dir
-178
-svn://libdog.mohawkcollege.ca/evergreen/trunk/build/i18n/po
-svn://libdog.mohawkcollege.ca/evergreen
-
-
-
-2012-02-13T14:16:03.605645Z
-171
-rsoulliere
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5c3b6fda-0194-4e59-bf6b-2bec742c26c3
-
-AutoFieldWidget.js
-dir
-
-auth.properties
-dir
-
-register.js
-dir
-
-selfcheck.js
-dir
-
-cat.properties
-dir
-
-conify.js
-dir
-
-authority.js
-dir
-
-reports.dtd
-dir
-
-reports.js
-dir
-
-circ.properties
-dir
-
-acq.js
-dir
-
-multiclass_search_help.html
-dir
-
-TranslatorPopup.js
-dir
-
-User.js
-dir
-
-lang.dtd
-dir
-
-opac.dtd
-dir
-
-opac.js
-dir
-
-patron.properties
-dir
-
-conify.dtd
-dir
-
-XULTermLoader.js
-dir
-
-fm_IDL.dtd
-dir
-
-db.seed
-dir
-
-Searcher.js
-dir
-
-serial.properties
-dir
-
-ils_events.xml
-dir
-
-reservation.js
-dir
-
-offline.properties
-dir
-
-capture.js
-dir
-
-pull_list.js
-dir
-
-admin.properties
-dir
-
-common.properties
-dir
-
-pickup_and_return.js
-dir
-

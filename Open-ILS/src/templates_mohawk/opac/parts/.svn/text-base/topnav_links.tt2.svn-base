@@ -1,8 +1,0 @@
-<div id="gold-links-holder">
-    <div id="gold-links">
-        <div id="header-links">
-          <a href="http://www.mohawkcollege.ca">[% l('Mohawk College') %]</a>
-          <a href="http://brain.mohawkcollege.ca">[% l('TheBrain') %]</a>
-        </div>
-    </div>
-</div>
